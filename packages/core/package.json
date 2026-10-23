@@ -28,6 +28,7 @@
   "dependencies": {
     "@invoice-builder/contracts": "*",
     "date-fns": "^4.1.0",
+    "decimal.js": "^10.6.0",
     "pg": "^8.20.0",
     "sqlite3": "^6.0.1"
   },
