@@ -21,7 +21,7 @@ const initializers = vi.hoisted(() => ({
   units: vi.fn()
 }));
 
-vi.mock('electron', () => ({ ipcMain: ipc, shell }));
+vi.mock('electron', () => ({ ipcMain: ipc, shell, app: { isPackaged: false }, dialog: {} }));
 vi.mock('../autoUpdater', () => ({ initAutoUpdaterHandlers: initializers.autoUpdater }));
 vi.mock('../banks', () => ({ initBanksHandlers: initializers.banks }));
 vi.mock('../businesses', () => ({ initBusinessesHandlers: initializers.businesses }));
