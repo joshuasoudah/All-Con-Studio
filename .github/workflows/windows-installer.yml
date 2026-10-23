@@ -1,0 +1,36 @@
+name: Windows installer
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+      - cursor/all-con-studio-v1-9b58
+
+jobs:
+  nsis:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the unsigned NSIS installer
+        run: npm run release:win
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: All-Con-Studio-Setup
+          path: release/*.exe
+          if-no-files-found: error
