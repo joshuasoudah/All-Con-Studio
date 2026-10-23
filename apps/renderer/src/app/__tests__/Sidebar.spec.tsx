@@ -15,7 +15,6 @@ import { Sidebar } from '../Sidebar';
 const mocks = vi.hoisted(() => ({
   desktop: true,
   menuItems: [] as MenuItemMetadata[],
-  confirmation: undefined as { isOpen: boolean; onCancel?: () => void; onConfirm?: () => void } | undefined,
   getAppVersion: vi.fn()
 }));
 
@@ -27,18 +26,12 @@ vi.mock('../../shared/components/lists/menuList/MenuList', () => ({
     return <div data-testid="menu-state">{String(showText)}</div>;
   }
 }));
-vi.mock('../../shared/components/modals/confirmation', () => ({
-  Confirmation: (props: typeof mocks.confirmation) => {
-    mocks.confirmation = props;
-    return null;
-  }
-}));
 
 const Location = () => <div data-testid="location">{useLocation().pathname}</div>;
 const wrapper = ({ children }: { children: ReactNode }) => (
   <Provider store={store}>
     <I18nextProvider i18n={i18n}>
-      <MemoryRouter initialEntries={['/invoices']}>
+      <MemoryRouter initialEntries={['/']}>
         {children}
         <Location />
       </MemoryRouter>
@@ -59,17 +52,18 @@ describe('Sidebar', () => {
     );
   });
 
-  it('builds enabled navigation, navigates, selects the current path, and collapses', async () => {
+  it('builds the All Con Studio navigation and collapses', async () => {
     render(<Sidebar />, { wrapper });
     await waitFor(() => expect(mocks.getAppVersion).toHaveBeenCalledTimes(1));
 
-    const invoices = findItem(i18n.t('menuItems.invoices'));
-    expect(typeof invoices.isSelected).toBe('function');
-    expect((invoices.isSelected as (item: MenuItem) => boolean)(invoices)).toBe(true);
-    expect(findItem(i18n.t('menuItems.quotes'))).toBeDefined();
-    expect(findItem(i18n.t('menuItems.presets'))).toBeDefined();
-    expect(findItem(i18n.t('menuItems.styleProfiles'))).toBeDefined();
-    expect(findItem(i18n.t('menuItems.reports'))).toBeDefined();
+    const dashboard = findItem(i18n.t('menuItems.dashboard'));
+    expect((dashboard.isSelected as (item: MenuItem) => boolean)(dashboard)).toBe(true);
+    expect(findItem(i18n.t('menuItems.workOrders'))).toBeDefined();
+    expect(findItem(i18n.t('menuItems.creditMemos'))).toBeDefined();
+    expect(findItem(i18n.t('menuItems.projects'))).toBeDefined();
+    expect(findItem(i18n.t('menuItems.vendors'))).toBeDefined();
+    expect(items().some(item => item.text === i18n.t('menuItems.quotes'))).toBe(false);
+    expect(items().some(item => item.text === i18n.t('menuItems.reports'))).toBe(false);
 
     const settings = findItem(i18n.t('menuItems.settings'));
     act(() => settings.onClick?.(settings));
@@ -79,30 +73,10 @@ describe('Sidebar', () => {
     expect(screen.getByTestId('menu-state')).toHaveTextContent('false');
   });
 
-  it('opens, cancels, and confirms logout', () => {
-    render(<Sidebar />, { wrapper });
-    const logoutItem = findItem(i18n.t('menuItems.logout'));
-
-    act(() => logoutItem.onClick?.(logoutItem));
-    expect(mocks.confirmation?.isOpen).toBe(true);
-    act(() => mocks.confirmation?.onCancel?.());
-    expect(mocks.confirmation?.isOpen).toBe(false);
-    act(() => logoutItem.onClick?.(logoutItem));
-    act(() => mocks.confirmation?.onConfirm?.());
-
-    expect(store.getState().pageSlice.dbReady).toBe(false);
-  });
-
-  it('omits disabled features and starts collapsed on mobile', () => {
+  it('starts collapsed on a narrow screen', () => {
     mocks.desktop = false;
-    store.dispatch(
-      setSettings({ quotesON: false, presetsON: false, styleProfilesON: false, reportsON: false } as Settings)
-    );
     render(<Sidebar />, { wrapper });
-
     expect(screen.getByTestId('menu-state')).toHaveTextContent('false');
-    expect(items().some(item => item.text === i18n.t('menuItems.quotes'))).toBe(false);
-    expect(items().some(item => item.text === i18n.t('menuItems.reports'))).toBe(false);
     expect(screen.queryByRole('button', { name: i18n.t('ariaLabel.menu') })).not.toBeInTheDocument();
   });
 });

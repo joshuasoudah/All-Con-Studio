@@ -21,7 +21,7 @@ import {
   setSettings
 } from '../state/pageSlice';
 import { AppLayout } from './AppLayout';
-import { DatabaseChooser } from './DatabaseChooser/DatabaseChooser';
+import { StudioGate } from './StudioGate';
 
 export const App: FC = () => {
   const dbReady = useAppSelector(selectDbReady);
@@ -90,7 +90,7 @@ export const App: FC = () => {
 
   return (
     <>
-      {!dbReady && <DatabaseChooser onDatabaseRead={onDatabaseRead} />}
+      {!dbReady && <StudioGate onReady={onDatabaseRead} />}
       {dbReady && (
         <BeforeUnloadProvider value={{ attemptNavigation, setBlocked }}>
           <AppLayout />

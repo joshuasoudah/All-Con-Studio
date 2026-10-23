@@ -621,7 +621,15 @@ export const webApi = () => {
         };
         input.click();
       });
-    }
+    },
+
+    studio: (_request?: { action: string; payload?: unknown }) =>
+      Promise.resolve({
+        success: false as boolean,
+        key: 'error.desktopOnly',
+        message: 'All Con Studio runs in the desktop app.',
+        data: undefined as unknown
+      })
   };
 };
 

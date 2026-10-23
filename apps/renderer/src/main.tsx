@@ -6,25 +6,16 @@ import { App } from './app/App';
 import { frontendConfig } from './config';
 import './globalErrorHandlers';
 import './i18n';
-import { BanksPage } from './pages/banks';
-import { BusinessesPage } from './pages/businesses';
-import { CategoriesPage } from './pages/categories';
-import { ClientsPage } from './pages/clients';
-import { CurrenciesPage } from './pages/currencies';
-import { InvoicesPage } from './pages/invoices';
-import { ItemsPage } from './pages/items';
-import { LayoutsPage } from './pages/layouts';
-import { PresetsPage } from './pages/presets';
-import { QuotesPage } from './pages/quotes';
-import { ReportsPage } from './pages/reports';
-import { SettingsPage } from './pages/settings';
-import { StyleProfilesPage } from './pages/styleProfiles';
-import { UnitsPage } from './pages/units';
 import './polyfills';
 import { isWebMode } from './shared/api/restApi';
 import { GlobalErrorBoundaryWrapper } from './shared/components/feedback/globalErrorBoundaryWrapper/GlobalErrorBoundaryWrapper';
 import { ThemeProviderWrapper } from './shared/components/layout/theme/ThemeProviderWrapper';
-import { InvoiceType } from '@invoice-builder/contracts';
+import { DashboardPage } from './studio/pages/DashboardPage';
+import { DocumentEditor } from './studio/pages/DocumentEditor';
+import { LibraryPage } from './studio/pages/LibraryPage';
+import { ProjectsPage } from './studio/pages/ProjectsPage';
+import { StudioSettingsPage } from './studio/pages/StudioSettingsPage';
+import { VendorsPage } from './studio/pages/VendorsPage';
 
 import { store } from './state/configureStore';
 
@@ -38,22 +29,17 @@ const createRouter = () => {
         </ThemeProviderWrapper>
       ),
       children: [
-        { index: true, element: <Navigate to="/invoices" replace /> },
-        { path: 'settings', element: <SettingsPage /> },
-        { path: 'businesses', element: <BusinessesPage /> },
-        { path: 'clients', element: <ClientsPage /> },
-        { path: 'currencies', element: <CurrenciesPage /> },
-        { path: 'units', element: <UnitsPage /> },
-        { path: 'categories', element: <CategoriesPage /> },
-        { path: 'items', element: <ItemsPage /> },
-        { path: 'styleProfiles', element: <StyleProfilesPage /> },
-        { path: 'layouts', element: <LayoutsPage /> },
-        { path: 'invoices', element: <InvoicesPage type={InvoiceType.invoice} /> },
-        { path: 'quotes', element: <QuotesPage /> },
-        { path: 'reports', element: <ReportsPage /> },
-        { path: 'banks', element: <BanksPage /> },
-        { path: 'presets', element: <PresetsPage /> },
-        { path: '*', element: <Navigate to="/invoices" replace /> }
+        { index: true, element: <DashboardPage /> },
+        { path: 'work-orders', element: <LibraryPage documentType="work_order" /> },
+        { path: 'work-orders/new', element: <DocumentEditor documentType="work_order" /> },
+        { path: 'work-orders/:id', element: <DocumentEditor documentType="work_order" /> },
+        { path: 'credit-memos', element: <LibraryPage documentType="credit_memo" /> },
+        { path: 'credit-memos/new', element: <DocumentEditor documentType="credit_memo" /> },
+        { path: 'credit-memos/:id', element: <DocumentEditor documentType="credit_memo" /> },
+        { path: 'projects', element: <ProjectsPage /> },
+        { path: 'vendors', element: <VendorsPage /> },
+        { path: 'settings', element: <StudioSettingsPage /> },
+        { path: '*', element: <Navigate to="/" replace /> }
       ]
     }
   ];
