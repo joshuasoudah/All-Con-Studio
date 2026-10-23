@@ -623,7 +623,7 @@ export const webApi = () => {
       });
     },
 
-    studio: (_request?: { action: string; payload?: unknown }) =>
+    studio: () =>
       Promise.resolve({
         success: false as boolean,
         key: 'error.desktopOnly',

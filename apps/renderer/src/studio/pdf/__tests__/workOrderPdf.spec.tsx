@@ -7,7 +7,8 @@ import { join, resolve } from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 import { describe, expect, it, vi } from 'vitest';
 import { pdfFileName } from '@invoice-builder/contracts';
-import { WorkOrderPdf, type WorkOrderPdfModel } from '../WorkOrderPdf';
+import { toPdfModel, WorkOrderPdf, type WorkOrderPdfModel } from '../WorkOrderPdf';
+import type { StudioDocument } from '@invoice-builder/contracts';
 
 const fontFiles = vi.hoisted(() => {
   // vi.hoisted runs before ESM imports, so the path helper is loaded here.
@@ -216,5 +217,82 @@ describe('work order PDF', () => {
     const text = textOf(bytes).text;
     for (const line of lines) expect(text).toContain(line.title);
     expect(text).toContain('Page 1 /');
+  });
+
+  it('renders empty parties, a pre-tax adjustment, and a logo without a mime type', async () => {
+    const sparse = wo817({
+      companyAddressLine1: '',
+      companyAddressLine2: 'Suite 1',
+      companyCity: '',
+      companyRegion: '',
+      companyPostalCode: '',
+      companyPhone: '',
+      logoSrc: null,
+      billToAddressLine1: '',
+      billToAddressLine2: 'Floor 2',
+      billToCity: '',
+      billToRegion: '',
+      billToPostalCode: '',
+      jobNumber: '',
+      overrideBasis: 'pre-tax',
+      adjustmentCents: -601,
+      lines: [
+        {
+          title: 'Labor',
+          description: '',
+          serviceText: '',
+          quantity: '1',
+          unitCostCents: 1000,
+          lineTotalCents: 1000
+        }
+      ]
+    });
+    const text = textOf(await renderPdf(sparse)).text;
+    expect(text).toContain('Suite 1');
+    expect(text).toContain('Floor 2');
+    expect(text).toContain('Job No: —');
+    expect(text).toContain('Adjustment');
+    expect(text).toContain('-$6.01');
+
+    const withLogo = toPdfModel({
+      documentType: 'work_order',
+      numberText: 'WO8.17',
+      projectName: 'Jaguars Stadium of the Future',
+      issuedOn: '2026-10-15',
+      dueOn: null,
+      jobNumber: '',
+      subcontractNumber: '',
+      vendorNumber: '',
+      vendorInvoiceNumber: '',
+      originalVendorInvoiceNumber: '',
+      companyAddressLine1: '',
+      companyAddressLine2: '',
+      companyCity: '',
+      companyRegion: '',
+      companyPostalCode: '',
+      companyPhone: '',
+      logoBase64: 'QUJD',
+      logoMime: '',
+      billToName: '',
+      billToAddressLine1: '',
+      billToAddressLine2: '',
+      billToCity: '',
+      billToRegion: '',
+      billToPostalCode: '',
+      taxName: 'Default',
+      taxRateBps: 750,
+      overrideBasis: 'pre-tax',
+      lines: [],
+      subtotalCents: 0,
+      taxCents: 0,
+      adjustmentCents: 0,
+      totalCents: 0,
+      showAmountPaid: false,
+      amountPaidCents: 0
+    } as StudioDocument);
+    expect(withLogo.logoSrc).toBe('data:image/png;base64,QUJD');
+    expect(
+      toPdfModel({ ...withLogo, logoBase64: null, logoMime: null, lines: [] } as unknown as StudioDocument).logoSrc
+    ).toBe(null);
   });
 });

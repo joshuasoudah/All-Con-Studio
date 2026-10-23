@@ -13,23 +13,35 @@ import { ensureAllConDatabase } from '../open';
 import { initAllConSchema } from '../schema';
 import {
   addAttachment,
+  archiveDocument,
   archiveProject,
+  archiveVendor,
   countDocuments,
   deleteDocument,
+  deleteProject,
+  deleteVendor,
   duplicateDocument,
+  duplicateProject,
   finalizeDocument,
   getAttachment,
+  getCompany,
   getDocument,
   getProject,
+  getStudioSettings,
+  getStudioState,
+  getVendor,
+  listAttachments,
   importDocument,
   listDocuments,
   listProjects,
+  listVendors,
   saveDocument,
   saveProject,
   saveVendor,
   seedDemo,
   suggestNumber,
-  updateCompany
+  updateCompany,
+  updateStudioSettings
 } from '../store';
 
 const files: string[] = [];
@@ -321,7 +333,12 @@ describe('all con documents', () => {
       mimeType: 'application/pdf',
       bytesBase64: marker.toString('base64')
     });
+    expect(await listAttachments(adapter, workOrder.id)).toEqual([
+      expect.objectContaining({ id: meta.id, fileName: 'vendor-invoice.pdf' })
+    ]);
     const stored = await getAttachment(adapter, meta.id);
+    const state = await getStudioState(adapter);
+    expect(state.recent.some(document => document.numberText === 'WO8.17')).toBe(true);
     expect(Buffer.from(stored.bytesBase64, 'base64').subarray(0, 4).toString()).toBe('%PDF');
     expect(Buffer.from(stored.bytesBase64, 'base64').toString()).toContain('ATTACHMENT-SENTINEL-XYZ');
     expect((await getDocument(adapter, workOrder.id)).lines).toHaveLength(3);
@@ -372,5 +389,174 @@ describe('all con documents', () => {
       key: 'error.notAllConDatabase'
     });
     expect(fs.existsSync(legacyPath)).toBe(true);
+  });
+
+  it('covers validation, renumbering, and empty-value branches', async () => {
+    const { adapter, project, vendor } = await fixture();
+    const spare = await saveVendor(adapter, { name: 'Spare Vendor', vendorNumber: 'SP' });
+    const renamed = await saveVendor(adapter, { id: spare.id, name: 'Spare Vendor Updated' });
+    expect(renamed.vendorNumber).toBe('SP');
+    await archiveVendor(adapter, spare.id);
+    await archiveVendor(adapter, spare.id, false);
+    expect((await listVendors(adapter, true)).some(item => item.id === spare.id)).toBe(true);
+    expect((await listVendors(adapter)).some(item => item.id === spare.id)).toBe(true);
+    await deleteVendor(adapter, spare.id);
+    await expect(saveVendor(adapter, { name: '   ' })).rejects.toMatchObject({ key: 'error.vendorRequired' });
+    await expect(getVendor(adapter, 'missing-vendor')).rejects.toMatchObject({ key: 'error.notFound' });
+
+    const draft = await saveDocument(adapter, {
+      documentType: 'work_order',
+      groupId: project.id,
+      vendorId: vendor.id,
+      lines: [{ title: 'Labor', quantity: '1', unitCostCents: 1000, serviceText: null }],
+      showAmountPaid: true,
+      amountPaidCents: 100,
+      overrideBasis: 'pre-tax',
+      manualTotalCents: 1000
+    });
+    expect(draft.numberOverridden).toBe(false);
+    await expect(deleteVendor(adapter, vendor.id)).rejects.toMatchObject({ key: 'error.vendorInUse' });
+    await expect(deleteProject(adapter, project.id)).rejects.toMatchObject({ key: 'error.projectInUse' });
+
+    const unused = await saveProject(adapter, { groupNumber: '11', name: 'Unused group', taxRateBps: 0 });
+    const firstCopy = await duplicateProject(adapter, unused.id);
+    const secondCopy = await duplicateProject(adapter, unused.id);
+    expect(firstCopy.groupNumber).toBe('11-copy');
+    expect(secondCopy.groupNumber).toBe('11-copy-2');
+    await deleteProject(adapter, firstCopy.id);
+    expect(await listProjects(adapter, true)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: project.id })])
+    );
+
+    await expect(suggestNumber(adapter, 'work_order', '')).rejects.toMatchObject({ key: 'error.groupRequired' });
+    await expect(
+      saveDocument(adapter, {
+        documentType: 'work_order',
+        lines: [{ title: 'Labor', quantity: '1', unitCostCents: 100 }]
+      })
+    ).rejects.toMatchObject({ key: 'error.groupRequired' });
+    await expect(
+      saveDocument(adapter, {
+        documentType: 'work_order',
+        groupId: project.id,
+        numberText: 'NOT-A-NUMBER',
+        lines: [{ title: 'Labor', quantity: '1', unitCostCents: 100 }]
+      })
+    ).rejects.toMatchObject({ key: 'error.numberFormat' });
+    await expect(
+      saveDocument(adapter, {
+        documentType: 'work_order',
+        groupId: project.id,
+        lines: [{ title: '   ', quantity: '1', unitCostCents: 100 }]
+      })
+    ).rejects.toMatchObject({ key: 'error.lineTitle' });
+    await expect(
+      importDocument(adapter, {
+        documentType: 'work_order',
+        groupId: project.id,
+        numberText: 'BAD',
+        lines: [{ title: 'Labor', quantity: '1', unitCostCents: 100 }]
+      })
+    ).rejects.toMatchObject({ key: 'error.numberFormat' });
+
+    const credit = await saveDocument(adapter, {
+      documentType: 'credit_memo',
+      lines: [{ title: 'Credit', quantity: '', unitCostCents: 500 }]
+    });
+    expect(credit.groupId).toBeNull();
+    expect(credit.projectName).toBe('');
+    const customCredit = await saveDocument(adapter, {
+      documentType: 'credit_memo',
+      numberText: 'CREDIT',
+      lines: [{ title: 'Plain credit', quantity: '1', unitCostCents: 100 }]
+    });
+    expect(customCredit.numberText).toBe('CREDIT');
+    expect(customCredit.numberOverridden).toBe(true);
+
+    const other = await saveProject(adapter, {
+      groupNumber: '12',
+      name: 'Other group',
+      taxRateBps: 0,
+      dueDateRule: 'none'
+    });
+    const moved = await saveDocument(adapter, {
+      id: draft.id,
+      documentType: 'work_order',
+      groupId: other.id,
+      vendorId: null,
+      dueOn: null,
+      manualTotalCents: null,
+      lines: [{ title: 'Labor', quantity: '', unitCostCents: 1000 }]
+    });
+    expect(moved.numberText).toBe('WO12.1');
+    expect(moved.vendorId).toBeNull();
+    expect(moved.dueOn).toBeNull();
+    expect(moved.manualTotalCents).toBeNull();
+
+    const finalized = await finalizeDocument(adapter, moved.id);
+    const paid = await saveDocument(adapter, {
+      id: finalized.id,
+      documentType: 'work_order',
+      showAmountPaid: true,
+      amountPaidCents: 250,
+      archived: true
+    });
+    expect(paid.archived).toBe(true);
+    expect(paid.amountPaidCents).toBe(250);
+    expect((await listDocuments(adapter, { archived: true, includeArchived: true })).map(item => item.id)).toContain(
+      paid.id
+    );
+    await archiveDocument(adapter, credit.id, false);
+    expect((await getDocument(adapter, credit.id)).archived).toBe(false);
+
+    await expect(getAttachment(adapter, 'missing-file')).rejects.toMatchObject({ key: 'error.notFound' });
+    const empty = await addAttachment(adapter, credit.id, {
+      fileName: 'empty.pdf',
+      mimeType: 'application/pdf',
+      bytesBase64: ''
+    });
+    await expect(getAttachment(adapter, empty.id)).rejects.toMatchObject({ key: 'error.notFound' });
+    await expect(getDocument(adapter, 'missing-document')).rejects.toMatchObject({ key: 'error.notFound' });
+    await expect(getProject(adapter, 'missing-project')).rejects.toMatchObject({ key: 'error.notFound' });
+
+    await expect(updateStudioSettings(adapter, { totalOverrideBasis: 'sideways' as 'post-tax' })).rejects.toMatchObject(
+      { key: 'error.overrideBasis' }
+    );
+    const configured = await updateStudioSettings(adapter, {
+      creditPrefix: 'CR-',
+      creditStart: 2000,
+      creditPadding: 5,
+      filenamePattern: '{number}.pdf',
+      showAmountPaidDefault: true,
+      totalOverrideBasis: 'pre-tax'
+    });
+    expect(configured.creditPrefix).toBe('CR-');
+    expect(configured.showAmountPaidDefault).toBe(true);
+    const kept = await updateStudioSettings(adapter, {});
+    expect(kept.creditPrefix).toBe('CR-');
+    const cleared = await updateCompany(adapter, { logoBase64: '', logoMime: null });
+    expect(cleared.logoBase64).toBeNull();
+    const logo = await updateCompany(adapter, {
+      logoBase64: Buffer.from('png').toString('base64'),
+      logoMime: 'image/png'
+    });
+    expect(logo.logoBase64).toBeTruthy();
+
+    await adapter.run(
+      `UPDATE ac_settings SET creditPrefix = '', creditStart = 0, filenamePattern = '', totalOverrideBasis = '' WHERE id = 1`
+    );
+    const fallback = await getStudioSettings(adapter);
+    expect(fallback.creditPrefix).toBe('CM-');
+    expect(fallback.creditStart).toBe(1001);
+    expect(fallback.filenamePattern).toBe('{number} - {project}.pdf');
+    expect(fallback.totalOverrideBasis).toBe('post-tax');
+    await seedDemo(adapter);
+    expect(await countDocuments(adapter)).toBeGreaterThan(0);
+
+    await adapter.run('DELETE FROM ac_settings WHERE id = 1');
+    await expect(getStudioSettings(adapter)).rejects.toMatchObject({ key: 'error.notFound' });
+    await adapter.run(`DELETE FROM ac_company WHERE id = 'company'`);
+    await expect(getCompany(adapter)).rejects.toMatchObject({ key: 'error.notFound' });
+    await expect(updateCompany(adapter, { name: 'Missing' })).rejects.toMatchObject({ key: 'error.notFound' });
   });
 });
