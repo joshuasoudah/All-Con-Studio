@@ -27,6 +27,7 @@ const createWindow = () => {
     width: 1280,
     height: 768,
     show: true,
+    title: 'All Con Studio',
     autoHideMenuBar: true,
     icon: join(mainAssetsPath, 'icon.png'),
     webPreferences: {
@@ -39,7 +40,7 @@ const createWindow = () => {
 
   if (isDev) {
     mainWindow.loadURL(devServer);
-    mainWindow.webContents.openDevTools();
+    if (process.env.ALLCON_NO_DEVTOOLS !== '1') mainWindow.webContents.openDevTools();
   } else {
     if (indexHtmlPath) mainWindow.loadFile(indexHtmlPath);
   }

@@ -1,7 +1,7 @@
 {
   "app": {
     "noItems": "Selected an item to view details",
-    "title": "Invoice Builder",
+    "title": "All Con Studio",
     "version": "Version"
   },
   "ariaLabel": {
@@ -623,17 +623,22 @@
     "businesses": "Businesses",
     "categories": "Categories",
     "clients": "Clients",
+    "creditMemos": "Credit Memos",
     "currencies": "Currencies",
+    "dashboard": "Dashboard",
     "invoices": "Invoices",
     "items": "Items",
     "layouts": "Layouts",
     "logout": "Log out",
     "presets": "Presets",
+    "projects": "Projects",
     "quotes": "Quotes",
     "reports": "Reports",
     "settings": "Settings",
     "styleProfiles": "Style Profiles",
-    "units": "Units"
+    "units": "Units",
+    "vendors": "Vendors",
+    "workOrders": "Work Orders"
   },
   "presets": {
     "add": "Add preset",

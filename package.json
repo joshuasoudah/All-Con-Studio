@@ -3,7 +3,7 @@
   "private": true,
   "version": "3.1.2",
   "type": "module",
-  "description": "Invoice and quotation builder desktop app with PDF export, designed for small businesses and freelancers. Create, manage, and export invoices and quotes easily using a local database in an Electron-based app.",
+  "description": "All Con Studio is an offline desktop app for construction work orders and credit memos. It keeps a local SQLite database and exports letter-size PDFs. Based on Invoice Builder.",
   "author": "piratuks",
   "keywords": [
     "invoice",

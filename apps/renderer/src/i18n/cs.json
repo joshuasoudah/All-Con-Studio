@@ -1,7 +1,7 @@
 {
   "app": {
     "noItems": "Vyberte položku pro zobrazení podrobností",
-    "title": "Invoice Builder",
+    "title": "All Con Studio",
     "version": "Verze"
   },
   "ariaLabel": {
@@ -622,17 +622,22 @@
     "businesses": "Moje firmy",
     "categories": "Kategorie",
     "clients": "Klienti",
+    "creditMemos": "Dobropisy",
     "currencies": "Měny",
+    "dashboard": "Přehled",
     "invoices": "Faktury",
     "items": "Položky",
     "layouts": "Vzhledy",
     "logout": "Odhlásit se",
     "presets": "Předvolby",
+    "projects": "Projekty",
     "quotes": "Nabídky",
     "reports": "Přehledy",
     "settings": "Nastavení",
     "styleProfiles": "Profily stylů",
-    "units": "Jednotky"
+    "units": "Jednotky",
+    "vendors": "Dodavatelé",
+    "workOrders": "Pracovní příkazy"
   },
   "presets": {
     "add": "Přidat předvolbu",
