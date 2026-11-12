@@ -1,21 +1,24 @@
-import { ChevronLeft, ChevronRight, Description, Folder, People, Settings } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight, DarkMode, Description, LightMode, People, Settings } from '@mui/icons-material';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import { Box, Divider, Drawer, IconButton, Tooltip, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { useCallback, useEffect, useState, type FC } from 'react';
+import { useCallback, useContext, useEffect, useState, type FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
+import logo from '../assets/allcon/default-logo.png';
 import { getApi } from '../shared/api/restApi';
+import { ThemeContext } from '../shared/components/layout/theme/ThemeProviderWrapper';
 import { MenuList } from '../shared/components/lists/menuList/MenuList';
+import { Themes } from '../shared/enums/themes';
 import type { MenuItem } from '../shared/types/menuItem';
 import { useAppDispatch, useAppSelector } from '../state/configureStore';
-import { selectVersion, setVersion } from '../state/pageSlice';
+import { selectSettings, selectVersion, setMode, setVersion } from '../state/pageSlice';
 
-const DRAWER_WIDTH = 240;
-const COLLAPSED_WIDTH = 60;
+const DRAWER_WIDTH = 248;
+const COLLAPSED_WIDTH = 72;
 
 export const Sidebar: FC = () => {
   const dispatch = useAppDispatch();
@@ -26,6 +29,8 @@ export const Sidebar: FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const version = useAppSelector(selectVersion);
+  const storeSettings = useAppSelector(selectSettings);
+  const { mode, toggleMode } = useContext(ThemeContext);
 
   const onClickNavigate = useCallback(
     (menuItem: MenuItem) => {
@@ -48,16 +53,13 @@ export const Sidebar: FC = () => {
     icon,
     path,
     isToggle: false,
-    minHeight: 50,
+    minHeight: 44,
     isSelected,
     onClick: onClickNavigate
   });
 
   const menuItems = [
     {
-      groupName: t('common.documents'),
-      groupIcon: <Folder />,
-      isOpen: true,
       items: [
         item(t('menuItems.dashboard'), '/', <DashboardIcon />),
         item(t('menuItems.workOrders'), '/work-orders', <Description />),
@@ -70,6 +72,17 @@ export const Sidebar: FC = () => {
   ];
 
   const handleToggle = () => setOpen(!open);
+
+  const switchColorMode = () => {
+    const nextDark = mode !== Themes.dark;
+    if (storeSettings) {
+      dispatch(setMode(nextDark));
+      const api = getApi() as { updateSettings?: (data: { isDarkMode: boolean }) => Promise<unknown> };
+      void api.updateSettings?.({ isDarkMode: nextDark });
+      return;
+    }
+    toggleMode();
+  };
 
   useEffect(() => {
     if (!isDesktop) setOpen(false);
@@ -87,8 +100,6 @@ export const Sidebar: FC = () => {
       sx={{
         width: open ? DRAWER_WIDTH : COLLAPSED_WIDTH,
         flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
         '& .MuiDrawer-paper': {
           width: open ? DRAWER_WIDTH : COLLAPSED_WIDTH,
           boxSizing: 'border-box',
@@ -96,46 +107,58 @@ export const Sidebar: FC = () => {
           color: theme.palette.text.primary,
           borderRight: `1px solid ${theme.palette.divider}`,
           overflowX: 'hidden',
-          transition: 'width 0.3s',
+          transition: 'width 0.2s ease',
           borderRadius: 0,
           display: 'flex',
           flexDirection: 'column'
         }
       }}
     >
-      {isDesktop && (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: open ? 'space-between' : 'center',
-            px: 1,
-            minHeight: 64
-          }}
-        >
-          <Box sx={{ flexGrow: 1 }}></Box>
-          {open && (
-            <Typography variant="h6" noWrap component="div" sx={{ color: theme.palette.primary.main }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: open ? 'space-between' : 'center',
+          gap: 1,
+          px: 1.5,
+          minHeight: 76
+        }}
+      >
+        {open ? (
+          <Box sx={{ minWidth: 0, pl: 0.5 }}>
+            <Box
+              component="img"
+              src={logo}
+              alt="All Construction Group"
+              sx={{ height: 28, width: 'auto', display: 'block', bgcolor: '#fff', borderRadius: 1, px: 0.5 }}
+            />
+            <Typography variant="subtitle2" noWrap sx={{ mt: 0.75, color: 'text.primary' }}>
               {t('app.title')}
             </Typography>
-          )}
-          <Box sx={{ flexGrow: 1 }}></Box>
+          </Box>
+        ) : null}
+        {isDesktop ? (
           <Tooltip title={t('ariaLabel.menu')}>
-            <IconButton onClick={handleToggle} aria-label={t('ariaLabel.menu')}>
+            <IconButton onClick={handleToggle} aria-label={t('ariaLabel.menu')} size="small">
               {open ? <ChevronLeft /> : <ChevronRight />}
             </IconButton>
           </Tooltip>
-        </Box>
-      )}
-      {isDesktop && <Divider />}
+        ) : null}
+      </Box>
+      <Divider />
       <MenuList useTooltip={true} items={menuItems} showText={open} />
-      <Box sx={{ p: 2 }}>
-        <Divider />
-        {open && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center', whiteSpace: 'nowrap' }}>
+      <Box sx={{ mt: 'auto', px: 1.5, pb: 2 }}>
+        <Divider sx={{ mb: 1 }} />
+        <Tooltip title={mode === Themes.dark ? 'Light mode' : 'Dark mode'}>
+          <IconButton aria-label="Color mode" onClick={switchColorMode} size="small">
+            {mode === Themes.dark ? <LightMode fontSize="small" /> : <DarkMode fontSize="small" />}
+          </IconButton>
+        </Tooltip>
+        {open ? (
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, pl: 0.5 }}>
             {t('app.version')}: {version}
           </Typography>
-        )}
+        ) : null}
       </Box>
     </Drawer>
   );

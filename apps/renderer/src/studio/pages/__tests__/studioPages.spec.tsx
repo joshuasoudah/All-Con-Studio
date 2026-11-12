@@ -209,6 +209,16 @@ describe('studio pages', () => {
     expect(await screen.findByText('Could not load the dashboard.')).toBeInTheDocument();
   });
 
+  it('asks for a group number and a project name before saving', async () => {
+    render(<ProjectsPage />);
+    expect(await screen.findByText('8 · Jaguars Stadium of the Future')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Save project' }));
+    expect(await screen.findByText('Enter a group number.')).toBeInTheDocument();
+    change('Group number', '4');
+    fireEvent.click(screen.getByRole('button', { name: 'Save project' }));
+    expect(await screen.findByText('Enter a project name.')).toBeInTheDocument();
+  });
+
   it('saves, edits, archives, and deletes a project', async () => {
     const user = userEvent.setup();
     render(<ProjectsPage />);
@@ -249,6 +259,13 @@ describe('studio pages', () => {
     studio.call.mockRejectedValueOnce('blocked');
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(await screen.findByText('blocked')).toBeInTheDocument();
+  });
+
+  it('asks for a vendor name before saving', async () => {
+    render(<VendorsPage />);
+    expect(await screen.findByText(/ALLCO5/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Save vendor' }));
+    expect(await screen.findByText('Enter a vendor name.')).toBeInTheDocument();
   });
 
   it('saves, edits, archives, and deletes a vendor', async () => {

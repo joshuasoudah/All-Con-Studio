@@ -1,10 +1,11 @@
 import type { StudioDocument, StudioListFilter, StudioProject, StudioVendor } from '@invoice-builder/contracts';
 import { formatUsd, pdfFileName } from '@invoice-builder/contracts';
 import { pdf } from '@react-pdf/renderer';
-import { Box, Button, MenuItem, TextField, Typography } from '@mui/material';
+import { Box, Button, Chip, MenuItem, Paper, TextField, Typography } from '@mui/material';
 import { useEffect, useMemo, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { studioCall } from '../client';
+import { EmptyState, PageHeader, Section } from '../chrome';
 import { toPdfModel, WorkOrderPdf } from '../pdf/WorkOrderPdf';
 
 const bytesToBase64 = (bytes: Uint8Array) => {
@@ -85,91 +86,119 @@ export const LibraryPage: FC<{ documentType: 'work_order' | 'credit_memo' }> = (
     });
   };
 
+  const title = documentType === 'credit_memo' ? 'Credit Memos' : 'Work Orders';
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="h4">{documentType === 'credit_memo' ? 'Credit Memos' : 'Work Orders'}</Typography>
+      <PageHeader
+        title={title}
+        lede="Library grouped by project. Search, filter, duplicate, archive, and export from here."
+        action={
+          <Button
+            variant="contained"
+            onClick={() => navigate(documentType === 'credit_memo' ? '/credit-memos/new' : '/work-orders/new')}
+          >
+            {documentType === 'credit_memo' ? 'New Credit Memo' : 'New Work Order'}
+          </Button>
+        }
+      />
+      <Section>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(6, minmax(0, 1fr))' }, gap: 1.5 }}>
+          <TextField label="Search" value={search} onChange={event => setSearch(event.target.value)} />
+          <TextField select label="Project" value={groupId} onChange={event => setGroupId(event.target.value)}>
+            <MenuItem value="">Any</MenuItem>
+            {projects.map(project => (
+              <MenuItem key={project.id} value={project.id}>
+                {project.groupNumber} · {project.name}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField select label="Vendor" value={vendorId} onChange={event => setVendorId(event.target.value)}>
+            <MenuItem value="">Any</MenuItem>
+            {vendors.map(vendor => (
+              <MenuItem key={vendor.id} value={vendor.id}>
+                {vendor.name}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField select label="Status" value={status} onChange={event => setStatus(event.target.value)}>
+            <MenuItem value="">Active</MenuItem>
+            <MenuItem value="draft">Draft</MenuItem>
+            <MenuItem value="finalized">Finalized</MenuItem>
+            <MenuItem value="archived">Archived</MenuItem>
+          </TextField>
+          <TextField
+            label="From"
+            type="date"
+            value={issuedFrom}
+            onChange={event => setIssuedFrom(event.target.value)}
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
+          <TextField
+            label="To"
+            type="date"
+            value={issuedTo}
+            onChange={event => setIssuedTo(event.target.value)}
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
+        </Box>
         <Button
-          variant="contained"
-          onClick={() => navigate(documentType === 'credit_memo' ? '/credit-memos/new' : '/work-orders/new')}
+          variant="outlined"
+          sx={{ mt: 2 }}
+          onClick={() => void load().catch((reason: unknown) => setError(String(reason)))}
         >
-          {documentType === 'credit_memo' ? 'New Credit Memo' : 'New Work Order'}
+          Apply filters
         </Button>
-      </Box>
-      <Typography color="text.secondary" sx={{ mb: 2 }}>
-        Library grouped by project. Search, filter, duplicate, archive, and export from here.
-      </Typography>
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 1, mb: 2 }}>
-        <TextField label="Search" value={search} onChange={event => setSearch(event.target.value)} />
-        <TextField select label="Project" value={groupId} onChange={event => setGroupId(event.target.value)}>
-          <MenuItem value="">Any</MenuItem>
-          {projects.map(project => (
-            <MenuItem key={project.id} value={project.id}>
-              {project.groupNumber} · {project.name}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField select label="Vendor" value={vendorId} onChange={event => setVendorId(event.target.value)}>
-          <MenuItem value="">Any</MenuItem>
-          {vendors.map(vendor => (
-            <MenuItem key={vendor.id} value={vendor.id}>
-              {vendor.name}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField select label="Status" value={status} onChange={event => setStatus(event.target.value)}>
-          <MenuItem value="">Active</MenuItem>
-          <MenuItem value="draft">Draft</MenuItem>
-          <MenuItem value="finalized">Finalized</MenuItem>
-          <MenuItem value="archived">Archived</MenuItem>
-        </TextField>
-        <TextField
-          label="From"
-          type="date"
-          value={issuedFrom}
-          onChange={event => setIssuedFrom(event.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
-        <TextField
-          label="To"
-          type="date"
-          value={issuedTo}
-          onChange={event => setIssuedTo(event.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
-      </Box>
-      <Button variant="outlined" onClick={() => void load().catch((reason: unknown) => setError(String(reason)))}>
-        Apply filters
-      </Button>
+      </Section>
       {error ? (
         <Typography color="error" sx={{ mt: 2 }}>
           {error}
         </Typography>
       ) : null}
+      {!error && grouped.length === 0 ? (
+        <EmptyState title={`No ${title.toLowerCase()} yet.`} detail="Create one, or clear the filters." />
+      ) : null}
       {grouped.map(([projectName, rows]) => (
         <Box key={projectName} sx={{ mt: 3 }}>
-          <Typography variant="h6">{projectName}</Typography>
-          {rows.map(document => (
-            <Box key={document.id} sx={{ display: 'flex', gap: 1, alignItems: 'center', py: 0.5 }}>
-              <Button onClick={() => navigate(openPath(document))}>{document.numberText}</Button>
-              <Typography sx={{ flex: 1 }}>
-                {document.vendorName} · {document.status} · {formatUsd(document.totalCents)}
-              </Typography>
-              <Button
-                onClick={() =>
-                  void studioCall<StudioDocument>('duplicateDocument', { id: document.id }).then(copy =>
-                    navigate(openPath(copy))
-                  )
-                }
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            {projectName}
+          </Typography>
+          <Paper>
+            {rows.map(document => (
+              <Box
+                key={document.id}
+                sx={{
+                  display: 'flex',
+                  gap: 1,
+                  alignItems: 'center',
+                  px: 1.5,
+                  py: 1,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  '&:last-child': { borderBottom: 0 }
+                }}
               >
-                Duplicate
-              </Button>
-              <Button onClick={() => void download(document.id)}>PDF</Button>
-              <Button onClick={() => void studioCall('archiveDocument', { id: document.id }).then(load)}>
-                Archive
-              </Button>
-            </Box>
-          ))}
+                <Button onClick={() => navigate(openPath(document))}>{document.numberText}</Button>
+                <Typography sx={{ flex: 1 }}>
+                  {document.vendorName} · {formatUsd(document.totalCents)}
+                </Typography>
+                <Chip size="small" label={document.status} variant="outlined" />
+                <Button
+                  onClick={() =>
+                    void studioCall<StudioDocument>('duplicateDocument', { id: document.id }).then(copy =>
+                      navigate(openPath(copy))
+                    )
+                  }
+                >
+                  Duplicate
+                </Button>
+                <Button onClick={() => void download(document.id)}>PDF</Button>
+                <Button onClick={() => void studioCall('archiveDocument', { id: document.id }).then(load)}>
+                  Archive
+                </Button>
+              </Box>
+            ))}
+          </Paper>
         </Box>
       ))}
     </Box>

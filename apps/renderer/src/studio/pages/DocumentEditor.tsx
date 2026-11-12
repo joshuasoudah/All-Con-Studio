@@ -9,10 +9,10 @@ import type {
   StudioVendor,
   TotalOverrideBasis
 } from '@invoice-builder/contracts';
-import { formatUsd, parseUsdToCents, pdfFileName } from '@invoice-builder/contracts';
+import { addIsoDays, formatTaxPercent, formatUsd, parseUsdToCents, pdfFileName } from '@invoice-builder/contracts';
 import { pdf, PDFViewer } from '@react-pdf/renderer';
 import { Box, Button, MenuItem, TextField, Typography } from '@mui/material';
-import { useEffect, useMemo, useState, type FC, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FC, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { studioCall } from '../client';
 import { toPdfModel, WorkOrderPdf, type WorkOrderPdfModel } from '../pdf/WorkOrderPdf';
@@ -67,6 +67,7 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
   const [subcontractNumber, setSubcontractNumber] = useState('');
   const [billToName, setBillToName] = useState('');
   const [billToAddressLine1, setBillToAddressLine1] = useState('');
+  const [billToAddressLine2, setBillToAddressLine2] = useState('');
   const [billToCity, setBillToCity] = useState('');
   const [billToRegion, setBillToRegion] = useState('');
   const [billToPostalCode, setBillToPostalCode] = useState('');
@@ -89,6 +90,7 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
   const [attachments, setAttachments] = useState<StudioAttachmentMeta[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | undefined>(id);
+  const dueTouched = useRef(false);
   const locked = status === 'finalized';
 
   useEffect(() => {
@@ -126,7 +128,9 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
       setSubcontractNumber(document.subcontractNumber);
       setBillToName(document.billToName);
       setBillToAddressLine1(document.billToAddressLine1);
+      setBillToAddressLine2(document.billToAddressLine2);
       setBillToCity(document.billToCity);
+      dueTouched.current = true;
       setBillToRegion(document.billToRegion);
       setBillToPostalCode(document.billToPostalCode);
       setVendorName(document.vendorName);
@@ -165,7 +169,9 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
 
   useEffect(() => {
     if (!savedId) return;
-    void studioCall<StudioAttachmentMeta[]>('listAttachments', { documentId: savedId }).then(setAttachments);
+    void studioCall<StudioAttachmentMeta[]>('listAttachments', { documentId: savedId })
+      .then(rows => setAttachments(Array.isArray(rows) ? rows : []))
+      .catch(() => setAttachments([]));
   }, [savedId]);
 
   const applyGroup = async (nextGroupId: string) => {
@@ -177,15 +183,14 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
     setSubcontractNumber(project.subcontractNumber);
     setBillToName(project.billToName);
     setBillToAddressLine1(project.billToAddressLine1);
+    setBillToAddressLine2(project.billToAddressLine2);
     setBillToCity(project.billToCity);
     setBillToRegion(project.billToRegion);
     setBillToPostalCode(project.billToPostalCode);
     setTaxName(project.taxName);
     setTaxRateBps(project.taxRateBps);
-    if (!dueOn && project.dueDateRule === 'net') {
-      const issued = new Date(`${issuedOn}T00:00:00Z`);
-      issued.setUTCDate(issued.getUTCDate() + project.dueDateDays);
-      setDueOn(issued.toISOString().slice(0, 10));
+    if (!dueTouched.current) {
+      setDueOn(project.dueDateRule === 'net' ? addIsoDays(issuedOn, project.dueDateDays) : '');
     }
     if (!numberDirty && !credit) {
       const suggested = await studioCall<string>('suggestNumber', { documentType, groupNumber: project.groupNumber });
@@ -245,7 +250,7 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
       logoSrc || (company?.logoBase64 ? `data:${company.logoMime || 'image/png'};base64,${company.logoBase64}` : null),
     billToName,
     billToAddressLine1,
-    billToAddressLine2: '',
+    billToAddressLine2,
     billToCity,
     billToRegion,
     billToPostalCode,
@@ -283,6 +288,7 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
     subcontractNumber,
     billToName,
     billToAddressLine1,
+    billToAddressLine2,
     billToCity,
     billToRegion,
     billToPostalCode,
@@ -317,6 +323,14 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
+    if (!credit && !groupId) {
+      setError('Choose a project group before saving.');
+      return;
+    }
+    if (!lines.some(line => line.title.trim())) {
+      setError('Add at least one line with a title.');
+      return;
+    }
     void save().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Could not save.'));
   };
 
@@ -335,6 +349,10 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
   };
 
   const createVendor = async () => {
+    if (!newVendorName.trim()) {
+      setError('Enter a vendor name.');
+      return;
+    }
     const vendor = await studioCall<StudioVendor>('saveVendor', { name: newVendorName, vendorNumber: newVendorNumber });
     setVendors(current => [...current, vendor].sort((left, right) => left.name.localeCompare(right.name)));
     applyVendor(vendor.id);
@@ -350,6 +368,9 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
     <Box sx={{ display: 'flex', gap: 2, height: 'calc(100vh - 32px)' }}>
       {!expanded ? (
         <Box component="form" onSubmit={onSubmit} sx={{ flex: 1, overflow: 'auto', minWidth: 0, pr: 1 }}>
+          <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.14em' }}>
+            All Con Studio
+          </Typography>
           <Typography variant="h5" sx={{ mb: 1 }}>
             {credit ? 'Credit Memo' : 'Work Order'} {numberText}
           </Typography>
@@ -421,7 +442,14 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
               type="date"
               value={issuedOn}
               disabled={locked}
-              onChange={event => setIssuedOn(event.target.value)}
+              onChange={event => {
+                const next = event.target.value;
+                setIssuedOn(next);
+                const project = projects.find(item => item.id === groupId);
+                if (!dueTouched.current && project?.dueDateRule === 'net') {
+                  setDueOn(addIsoDays(next, project.dueDateDays));
+                }
+              }}
               slotProps={{ inputLabel: { shrink: true } }}
             />
             <TextField
@@ -429,7 +457,11 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
               type="date"
               value={dueOn}
               disabled={locked}
-              onChange={event => setDueOn(event.target.value)}
+              helperText="Net days follow the project until you edit this date."
+              onChange={event => {
+                dueTouched.current = true;
+                setDueOn(event.target.value);
+              }}
               slotProps={{ inputLabel: { shrink: true } }}
             />
             <TextField
@@ -443,6 +475,30 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
               value={billToAddressLine1}
               disabled={locked}
               onChange={event => setBillToAddressLine1(event.target.value)}
+            />
+            <TextField
+              label="Bill to line 2"
+              value={billToAddressLine2}
+              disabled={locked}
+              onChange={event => setBillToAddressLine2(event.target.value)}
+            />
+            <TextField
+              label="City"
+              value={billToCity}
+              disabled={locked}
+              onChange={event => setBillToCity(event.target.value)}
+            />
+            <TextField
+              label="State"
+              value={billToRegion}
+              disabled={locked}
+              onChange={event => setBillToRegion(event.target.value)}
+            />
+            <TextField
+              label="Postal code"
+              value={billToPostalCode}
+              disabled={locked}
+              onChange={event => setBillToPostalCode(event.target.value)}
             />
           </Box>
           {!locked ? (
@@ -534,6 +590,15 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
                 }
               />
               <Typography sx={{ alignSelf: 'center' }}>{formatUsd(totals?.lineTotalCents[index] ?? 0)}</Typography>
+              {!locked && lines.length > 1 ? (
+                <Button
+                  type="button"
+                  color="inherit"
+                  onClick={() => setLines(current => current.filter(item => item.key !== line.key))}
+                >
+                  Remove line
+                </Button>
+              ) : null}
             </Box>
           ))}
           {!locked ? (
@@ -572,7 +637,7 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
           <Box sx={{ mt: 2 }}>
             <Typography>Subtotal {formatUsd(totals?.subtotalCents ?? 0)}</Typography>
             <Typography>
-              Tax {taxName} {formatUsd(totals?.taxCents ?? 0)}
+              Tax {taxName} ({formatTaxPercent(taxRateBps)}%) {formatUsd(totals?.taxCents ?? 0)}
             </Typography>
             <Typography>Adjustment {formatUsd(totals?.adjustmentCents ?? 0)}</Typography>
             <Typography variant="h6">
@@ -673,11 +738,27 @@ export const DocumentEditor: FC<{ documentType: 'work_order' | 'credit_memo' }> 
           </Box>
         </Box>
       ) : null}
-      <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        <Button type="button" onClick={() => setExpanded(value => !value)} sx={{ alignSelf: 'flex-end' }}>
-          {expanded ? 'Show form' : 'Expand preview'}
-        </Button>
-        <PDFViewer style={{ flex: 1, width: '100%', height: '100%', border: '1px solid #e3e3e3' }} showToolbar={false}>
+      <Box
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 2,
+          bgcolor: 'background.paper',
+          overflow: 'hidden'
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 1.5, py: 0.5 }}>
+          <Typography variant="subtitle2">Letter preview</Typography>
+          <Button type="button" onClick={() => setExpanded(value => !value)}>
+            {expanded ? 'Show form' : 'Expand preview'}
+          </Button>
+        </Box>
+        <PDFViewer style={{ flex: 1, width: '100%', height: '100%', border: 0 }} showToolbar={false}>
           <WorkOrderPdf model={model} />
         </PDFViewer>
       </Box>

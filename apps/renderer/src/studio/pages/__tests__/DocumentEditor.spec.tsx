@@ -231,6 +231,43 @@ describe('DocumentEditor', () => {
     expect(await screen.findByDisplayValue('WO8.19')).toBeInTheDocument();
   });
 
+  it('keeps net terms in step with the issue date until the due date is edited', async () => {
+    const user = userEvent.setup();
+    renderEditor('/work-orders/new');
+    await user.click(await screen.findByLabelText('Project group'));
+    await user.click(await screen.findByRole('option', { name: /Jaguars Stadium/ }));
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-10-16' } });
+    expect(screen.getByLabelText('Due date')).toHaveValue('2026-11-15');
+    fireEvent.change(screen.getByLabelText('Due date'), { target: { value: '2026-12-01' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-10-20' } });
+    expect(screen.getByLabelText('Due date')).toHaveValue('2026-12-01');
+  });
+
+  it('explains a missing project or line before saving', async () => {
+    renderEditor('/work-orders/new');
+    fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Choose a project group before saving.')).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByLabelText('Project group'));
+    await user.click(await screen.findByRole('option', { name: /Jaguars Stadium/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Add at least one line with a title.')).toBeInTheDocument();
+    fireEvent.change(screen.getAllByLabelText('Title')[0], { target: { value: '2nd Restroom Rent' } });
+    fireEvent.change(screen.getByLabelText('Bill to line 2'), { target: { value: 'Suite 4' } });
+    fireEvent.change(screen.getByLabelText('City'), { target: { value: 'Jacksonville' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(studio.call).toHaveBeenCalledWith(
+        'saveDocument',
+        expect.objectContaining({
+          billToAddressLine2: 'Suite 4',
+          billToCity: 'Jacksonville',
+          dueOn: expect.any(String)
+        })
+      )
+    );
+  });
+
   it('edits a credit memo and reports a save failure', async () => {
     const failures = new Map<string, unknown>([['saveDocument', new Error('duplicate number')]]);
     studio.call.mockImplementation(async (action: string) => {

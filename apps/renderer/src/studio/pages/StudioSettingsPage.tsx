@@ -3,6 +3,7 @@ import { Box, Button, MenuItem, TextField, Typography } from '@mui/material';
 import { useEffect, useState, type ChangeEvent, type FC, type FormEvent } from 'react';
 import { Confirmation } from '../../shared/components/modals/confirmation';
 import { studioCall } from '../client';
+import { PageHeader, Section } from '../chrome';
 
 const fileToBase64 = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -45,81 +46,108 @@ export const StudioSettingsPage: FC = () => {
   };
 
   return (
-    <Box component="form" onSubmit={save} sx={{ maxWidth: 820 }}>
-      <Typography variant="h4" sx={{ mb: 1 }}>
-        Settings
+    <Box component="form" onSubmit={save} sx={{ maxWidth: 880 }}>
+      <PageHeader
+        title="Settings"
+        lede="Company details and numbering are copied onto new work orders. Saved documents keep the copy they were created with."
+      />
+      <Typography color="text.secondary" sx={{ mb: 2 }}>
+        Database: {settings.databasePath}
       </Typography>
-      <Typography sx={{ mb: 2 }}>Database: {settings.databasePath}</Typography>
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-        <TextField
-          label="Company"
-          value={company.name}
-          onChange={event => setCompany({ ...company, name: event.target.value })}
-        />
-        <TextField
-          label="Phone"
-          value={company.phone}
-          onChange={event => setCompany({ ...company, phone: event.target.value })}
-        />
-        <TextField
-          label="Street"
-          value={company.addressLine1}
-          onChange={event => setCompany({ ...company, addressLine1: event.target.value })}
-        />
-        <TextField
-          label="Email"
-          value={company.email}
-          onChange={event => setCompany({ ...company, email: event.target.value })}
-          helperText="Shown as text only. All Con Studio does not send email."
-        />
-        <TextField
-          label="City"
-          value={company.city}
-          onChange={event => setCompany({ ...company, city: event.target.value })}
-        />
-        <TextField
-          label="State"
-          value={company.region}
-          onChange={event => setCompany({ ...company, region: event.target.value })}
-        />
-        <TextField
-          label="Postal code"
-          value={company.postalCode}
-          onChange={event => setCompany({ ...company, postalCode: event.target.value })}
-        />
-        <TextField
-          label="Credit prefix"
-          value={settings.creditPrefix}
-          onChange={event => setSettings({ ...settings, creditPrefix: event.target.value })}
-        />
-        <TextField
-          label="Credit start"
-          value={String(settings.creditStart)}
-          onChange={event => setSettings({ ...settings, creditStart: Number(event.target.value) })}
-        />
-        <TextField
-          label="Credit padding"
-          value={String(settings.creditPadding)}
-          onChange={event => setSettings({ ...settings, creditPadding: Number(event.target.value) })}
-        />
-        <TextField
-          label="PDF filename pattern"
-          value={settings.filenamePattern}
-          onChange={event => setSettings({ ...settings, filenamePattern: event.target.value })}
-          helperText="Use {number} and {project}."
-        />
-        <TextField
-          select
-          label="Manual total"
-          value={settings.totalOverrideBasis}
-          onChange={event =>
-            setSettings({ ...settings, totalOverrideBasis: event.target.value as StudioSettings['totalOverrideBasis'] })
-          }
-        >
-          <MenuItem value="post-tax">Post-tax adjustment</MenuItem>
-          <MenuItem value="pre-tax">Pre-tax adjustment</MenuItem>
-        </TextField>
-      </Box>
+      <Section title="Company">
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5 }}>
+          <TextField
+            label="Company"
+            value={company.name}
+            onChange={event => setCompany({ ...company, name: event.target.value })}
+          />
+          <TextField
+            label="Phone"
+            value={company.phone}
+            onChange={event => setCompany({ ...company, phone: event.target.value })}
+          />
+          <TextField
+            label="Street"
+            value={company.addressLine1}
+            onChange={event => setCompany({ ...company, addressLine1: event.target.value })}
+          />
+          <TextField
+            label="Email"
+            value={company.email}
+            onChange={event => setCompany({ ...company, email: event.target.value })}
+            helperText="Shown as text only. All Con Studio does not send email."
+          />
+          <TextField
+            label="City"
+            value={company.city}
+            onChange={event => setCompany({ ...company, city: event.target.value })}
+          />
+          <TextField
+            label="State"
+            value={company.region}
+            onChange={event => setCompany({ ...company, region: event.target.value })}
+          />
+          <TextField
+            label="Postal code"
+            value={company.postalCode}
+            onChange={event => setCompany({ ...company, postalCode: event.target.value })}
+          />
+          <TextField
+            label="Street line 2"
+            value={company.addressLine2}
+            onChange={event => setCompany({ ...company, addressLine2: event.target.value })}
+          />
+        </Box>
+      </Section>
+      <Section title="Numbering">
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5 }}>
+          <TextField
+            label="Credit prefix"
+            value={settings.creditPrefix}
+            onChange={event => setSettings({ ...settings, creditPrefix: event.target.value })}
+          />
+          <TextField
+            label="Credit start"
+            value={String(settings.creditStart)}
+            onChange={event => setSettings({ ...settings, creditStart: Number(event.target.value) })}
+          />
+          <TextField
+            label="Credit padding"
+            value={String(settings.creditPadding)}
+            onChange={event => setSettings({ ...settings, creditPadding: Number(event.target.value) })}
+          />
+          <TextField
+            label="PDF filename pattern"
+            value={settings.filenamePattern}
+            onChange={event => setSettings({ ...settings, filenamePattern: event.target.value })}
+            helperText="Use {number} and {project}."
+          />
+          <TextField
+            select
+            label="Manual total"
+            value={settings.totalOverrideBasis}
+            onChange={event =>
+              setSettings({
+                ...settings,
+                totalOverrideBasis: event.target.value as StudioSettings['totalOverrideBasis']
+              })
+            }
+          >
+            <MenuItem value="post-tax">Post-tax adjustment</MenuItem>
+            <MenuItem value="pre-tax">Pre-tax adjustment</MenuItem>
+          </TextField>
+          <TextField
+            select
+            label="Amount paid on new documents"
+            value={settings.showAmountPaidDefault ? 'shown' : 'hidden'}
+            onChange={event => setSettings({ ...settings, showAmountPaidDefault: event.target.value === 'shown' })}
+            helperText="The reference work order shows Amount Paid and Balance Due."
+          >
+            <MenuItem value="hidden">Hidden</MenuItem>
+            <MenuItem value="shown">Shown</MenuItem>
+          </TextField>
+        </Box>
+      </Section>
       <Button component="label" sx={{ mt: 2 }}>
         Upload logo
         <input hidden type="file" accept="image/png,image/jpeg" onChange={event => void onLogo(event)} />

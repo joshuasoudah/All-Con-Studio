@@ -8,7 +8,10 @@ export const AppLayout: FC = () => {
     <>
       <Box sx={{ display: 'flex', height: '100vh' }}>
         <Sidebar />
-        <Box component="main" sx={{ flexGrow: 1, p: 2, overflow: 'auto' }}>
+        <Box
+          component="main"
+          sx={{ flexGrow: 1, p: { xs: 2, md: 3 }, overflow: 'auto', bgcolor: 'background.default' }}
+        >
           <Outlet />
         </Box>
       </Box>
