@@ -1,12 +1,12 @@
 // @vitest-environment node
 import { pdf } from '@react-pdf/renderer';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 import { describe, expect, it, vi } from 'vitest';
-import { pdfFileName } from '@invoice-builder/contracts';
+import { formatUsd, pdfFileName } from '@invoice-builder/contracts';
 import { toPdfModel, WorkOrderPdf, type WorkOrderPdfModel } from '../WorkOrderPdf';
 import type { StudioDocument } from '@invoice-builder/contracts';
 
@@ -296,6 +296,97 @@ describe('work order PDF', () => {
       showAmountPaid: false,
       amountPaidCents: 0
     } as StudioDocument);
+    const samples = [
+      ['wo817', wo817({ showAmountPaid: true, amountPaidCents: 0 })],
+      [
+        'wo818',
+        wo817({
+          numberText: 'WO8.18',
+          issuedOn: '2026-10-20',
+          dueOn: '2026-11-19',
+          vendorInvoiceNumber: '2967104',
+          lines: [
+            {
+              title: 'Site labor',
+              description: 'Gate relocation',
+              serviceText: 'Service Date Range: 10/20/2026-11/19/2026',
+              quantity: '40',
+              unitCostCents: 8550,
+              lineTotalCents: 342000
+            }
+          ],
+          subtotalCents: 342000,
+          taxCents: 25650,
+          totalCents: 367650,
+          showAmountPaid: true,
+          amountPaidCents: 0
+        })
+      ],
+      [
+        'wo31',
+        wo817({
+          numberText: 'WO3.1',
+          projectName: 'Riverside Elementary Addition',
+          issuedOn: '2026-09-02',
+          dueOn: '2026-10-02',
+          jobNumber: 'RIV-14',
+          subcontractNumber: 'WO3',
+          vendorInvoiceNumber: '44102',
+          billToName: 'Example School Board',
+          billToAddressLine1: '400 Example Ave',
+          taxRateBps: 0,
+          lines: [
+            {
+              title: 'Temporary fencing',
+              description: 'Chain link, 6 ft, along the north laydown yard.',
+              serviceText: 'Service Date Range: 9/1/2026-9/30/2026(Monthly)',
+              quantity: '1',
+              unitCostCents: 185000,
+              lineTotalCents: 185000
+            }
+          ],
+          subtotalCents: 185000,
+          taxCents: 0,
+          totalCents: 185000,
+          showAmountPaid: true,
+          amountPaidCents: 0
+        })
+      ],
+      [
+        'cm1001',
+        wo817({
+          documentType: 'credit_memo',
+          numberText: 'CM-1001',
+          originalVendorInvoiceNumber: '2966923',
+          issuedOn: '2026-10-16',
+          dueOn: '2026-11-15',
+          lines: [wo817().lines[2]],
+          subtotalCents: 18895,
+          taxCents: 1417,
+          totalCents: 20312,
+          showAmountPaid: false
+        })
+      ]
+    ] as const;
+    const dir = '/tmp/allcon-samples';
+    mkdirSync(dir, { recursive: true });
+    for (const [name, model] of samples) {
+      const bytes = await renderPdf(model);
+      const loaded = await PDFDocument.load(bytes);
+      const page = loaded.getPage(0);
+      expect(page.getWidth()).toBe(612);
+      expect(page.getHeight()).toBe(792);
+      writeFileSync(`${dir}/${name}.pdf`, bytes);
+      const text = textOf(bytes).text;
+      expect(text).toContain(model.numberText);
+      expect(text).toContain(formatUsd(model.totalCents));
+    }
+    const stadium = textOf(await renderPdf(samples[0][1])).text;
+    expect(stadium).toContain('Amount Paid');
+    expect(stadium).toContain('Balance Due');
+    expect(stadium).toContain('$0.00');
+    expect(stadium).toContain('$3,106.46');
+
     expect(withLogo.logoSrc).toBe('data:image/png;base64,QUJD');
     expect(
       toPdfModel({ ...withLogo, logoBase64: null, logoMime: null, lines: [] } as unknown as StudioDocument).logoSrc

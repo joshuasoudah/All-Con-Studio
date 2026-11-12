@@ -117,6 +117,95 @@ afterEach(async () => {
 });
 
 describe('all con documents', () => {
+  it('prices a stadium work order, a follow-up, a second group, and a credit memo', async () => {
+    const { adapter, project, vendor } = await fixture();
+    const school = await saveProject(adapter, {
+      groupNumber: '3',
+      name: 'Riverside Elementary Addition',
+      jobNumber: 'RIV-14',
+      subcontractNumber: 'WO3',
+      billToName: 'Example School Board',
+      billToAddressLine1: '400 Example Ave',
+      billToCity: 'Jacksonville',
+      billToRegion: 'FL',
+      billToPostalCode: '32202',
+      taxName: 'Default',
+      taxRateBps: 0,
+      dueDateRule: 'net',
+      dueDateDays: 30
+    });
+    const stadium = await saveDocument(adapter, {
+      documentType: 'work_order',
+      groupId: project.id,
+      vendorId: vendor.id,
+      numberText: 'WO8.17',
+      vendorInvoiceNumber: '2966923',
+      issuedOn: '2026-10-15',
+      showAmountPaid: true,
+      amountPaidCents: 0,
+      lines
+    });
+    expect(stadium.numberText).toBe('WO8.17');
+    expect(stadium.dueOn).toBe('2026-11-14');
+    expect(stadium.subtotalCents).toBe(288973);
+    expect(stadium.taxCents).toBe(21673);
+    expect(stadium.totalCents).toBe(310646);
+    expect(stadium.balanceCents).toBe(310646);
+    expect(stadium.jobNumber).toBe('Default');
+    expect(stadium.subcontractNumber).toBe('WO8');
+
+    const followUp = await saveDocument(adapter, {
+      documentType: 'work_order',
+      groupId: project.id,
+      vendorId: vendor.id,
+      vendorInvoiceNumber: '2967104',
+      issuedOn: '2026-10-20',
+      lines: [{ title: 'Site labor', description: 'Gate relocation', quantity: '40', unitCostCents: 8550 }]
+    });
+    expect(followUp.numberText).toBe('WO8.18');
+    expect(followUp.dueOn).toBe('2026-11-19');
+    expect(followUp.subtotalCents).toBe(342000);
+    expect(followUp.taxCents).toBe(25650);
+    expect(followUp.totalCents).toBe(367650);
+
+    const schoolOrder = await saveDocument(adapter, {
+      documentType: 'work_order',
+      groupId: school?.id,
+      vendorId: vendor.id,
+      vendorInvoiceNumber: '44102',
+      issuedOn: '2026-09-02',
+      lines: [
+        {
+          title: 'Temporary fencing',
+          description: 'Chain link, 6 ft, along the north laydown yard.',
+          quantity: '1',
+          unitCostCents: 185000
+        }
+      ]
+    });
+    expect(schoolOrder.numberText).toBe('WO3.1');
+    expect(schoolOrder.dueOn).toBe('2026-10-02');
+    expect(schoolOrder.taxCents).toBe(0);
+    expect(schoolOrder.totalCents).toBe(185000);
+    expect(schoolOrder.projectName).toBe('Riverside Elementary Addition');
+
+    const credit = await saveDocument(adapter, {
+      documentType: 'credit_memo',
+      groupId: project.id,
+      vendorId: vendor.id,
+      originalVendorInvoiceNumber: '2966923',
+      issuedOn: '2026-10-16',
+      lines: [lines[2]]
+    });
+    expect(credit.numberText).toBe('CM-1001');
+    expect(credit.subtotalCents).toBe(18895);
+    expect(credit.taxCents).toBe(1417);
+    expect(credit.totalCents).toBe(20312);
+    expect(await suggestNumber(adapter, 'work_order', '8')).toBe('WO8.19');
+    expect(await suggestNumber(adapter, 'work_order', '3')).toBe('WO3.2');
+    expect(await suggestNumber(adapter, 'credit_memo')).toBe('CM-1002');
+  });
+
   it('seeds the sanitized WO8.17 fixture and the next numbers', async () => {
     const { adapter } = await memory();
     await seedDemo(adapter);
