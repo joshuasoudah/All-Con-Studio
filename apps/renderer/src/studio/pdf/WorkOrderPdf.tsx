@@ -66,58 +66,70 @@ export interface WorkOrderPdfModel {
   amountPaidCents: number;
 }
 
-const ink = '#1c1c1c';
-const muted = '#6a6a6a';
-const hairline = '#e3e3e3';
+const ink = '#1a1a1a';
+const muted = '#6d6d6d';
+const hairline = '#e4e4e4';
+const rule = '#d0d0d0';
 
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Figtree',
     fontSize: 9,
     color: ink,
-    paddingTop: 28,
-    paddingBottom: 36,
-    paddingHorizontal: 36
+    paddingTop: 34,
+    paddingBottom: 40,
+    paddingHorizontal: 40
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  admin: { width: 250, color: muted, fontSize: 8, lineHeight: 1.45 },
-  logo: { width: 190, height: 42, objectFit: 'contain', marginTop: 2 },
-  projectRow: { marginTop: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  project: { fontSize: 13, fontWeight: 600, width: 360 },
-  dates: { width: 168 },
-  dateLine: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 1 },
-  dateLabel: { color: muted, fontSize: 8, width: 62, textAlign: 'right', marginRight: 10 },
-  dateValue: { fontSize: 9, width: 78, textAlign: 'right' },
-  rule: { marginTop: 8, borderBottomWidth: 0.8, borderBottomColor: '#222222' },
-  parties: { marginTop: 12, flexDirection: 'row', justifyContent: 'space-between' },
-  billLabel: { color: muted, fontSize: 8, marginBottom: 2 },
-  billName: { fontSize: 11, fontWeight: 600, marginBottom: 2 },
-  billText: { fontSize: 9, lineHeight: 1.3 },
-  docKind: { fontSize: 16, fontWeight: 600, textAlign: 'right', letterSpacing: 0.4 },
-  docNumber: { marginTop: 1, fontSize: 13, fontWeight: 600, textAlign: 'right' },
+  admin: { width: 260, color: muted, fontSize: 8.5, lineHeight: 1.4 },
+  logo: { width: 148, height: 34, objectFit: 'contain', marginTop: 2 },
+  projectRow: {
+    marginTop: 22,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end'
+  },
+  project: { fontSize: 12.5, fontWeight: 600, width: 360 },
+  dateColumns: { flexDirection: 'row' },
+  dateCol: { width: 84, alignItems: 'flex-end', marginLeft: 8 },
+  dateLabel: { color: muted, fontSize: 8, marginBottom: 1 },
+  dateValue: { fontSize: 9 },
+  rule: { marginTop: 7, borderBottomWidth: 0.6, borderBottomColor: rule },
+  parties: { marginTop: 14, flexDirection: 'row', justifyContent: 'space-between' },
+  billLabel: { fontSize: 10.5, fontWeight: 600, marginBottom: 2 },
+  billName: { fontSize: 10, marginBottom: 1 },
+  billText: { fontSize: 9, lineHeight: 1.35, color: ink },
+  docKind: { fontSize: 16, fontWeight: 600, textAlign: 'right' },
+  docNumber: { marginTop: 1, fontSize: 11, textAlign: 'right' },
   ref: { marginTop: 3, fontSize: 8, color: muted, textAlign: 'right' },
   tableHeader: {
-    marginTop: 18,
+    marginTop: 26,
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#222222',
-    paddingBottom: 3
+    borderBottomWidth: 0.6,
+    borderBottomColor: rule,
+    paddingBottom: 4
   },
-  th: { fontSize: 8, fontWeight: 600 },
-  row: { flexDirection: 'row', borderBottomWidth: 0.4, borderBottomColor: hairline, paddingVertical: 6 },
-  colNo: { width: 24 },
-  colItem: { flex: 1, paddingRight: 8 },
-  colQty: { width: 46, textAlign: 'right' },
+  th: { fontSize: 8, color: '#3a3a3a' },
+  row: {
+    flexDirection: 'row',
+    borderBottomWidth: 0.4,
+    borderBottomColor: hairline,
+    paddingTop: 7,
+    paddingBottom: 8
+  },
+  colNo: { width: 22 },
+  colItem: { flex: 1, paddingRight: 10 },
+  colQty: { width: 42, textAlign: 'right' },
   colMoney: { width: 78, textAlign: 'right' },
   itemTitle: { fontSize: 9, fontWeight: 600 },
-  itemMeta: { marginTop: 1, fontSize: 8, color: muted, lineHeight: 1.3 },
-  totals: { marginTop: 8, marginLeft: 'auto', width: 230 },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 },
-  totalLabel: { fontSize: 9, color: muted },
-  totalValue: { fontSize: 9 },
-  grandLabel: { fontSize: 11, fontWeight: 600 },
-  grandValue: { fontSize: 11, fontWeight: 600 },
-  totalRule: { borderBottomWidth: 0.6, borderBottomColor: '#222222', marginBottom: 4, marginTop: 1 },
+  itemMeta: { marginTop: 1, fontSize: 8, color: muted, lineHeight: 1.35 },
+  totals: { marginTop: 12, marginLeft: 'auto', width: 248 },
+  totalRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 3 },
+  totalLabel: { fontSize: 9, textAlign: 'right', marginRight: 18 },
+  totalValue: { fontSize: 9, width: 78, textAlign: 'right' },
+  grandLabel: { fontSize: 10.5, fontWeight: 600, textAlign: 'right', marginRight: 18 },
+  grandValue: { fontSize: 10.5, fontWeight: 600, width: 78, textAlign: 'right' },
+  totalRule: { borderBottomWidth: 0.6, borderBottomColor: rule, marginBottom: 5, marginTop: 2 },
   pageNo: { position: 'absolute', right: 40, bottom: 18, fontSize: 8, color: muted }
 });
 
@@ -126,7 +138,8 @@ const placeLine = (city: string, region: string, postalCode: string) => {
   return [cityRegion, postalCode].filter(Boolean).join(' ');
 };
 
-const bullet = (label: string, value: string) => `${label}: ${value || '—'} •`;
+const metaLine = (label: string, value: string, withBullet: boolean) =>
+  `${label}: ${value || '—'}${withBullet ? ' •' : ''}`;
 
 const TotalRow = ({ label, value, grand = false }: { label: string; value: string; grand?: boolean }) => (
   <View style={styles.totalRow}>
@@ -219,21 +232,21 @@ export const WorkOrderPdf = ({ model }: { model: WorkOrderPdfModel }) => {
             {model.companyAddressLine2 ? <Text>{model.companyAddressLine2}</Text> : null}
             {companyPlace ? <Text>{companyPlace}</Text> : null}
             {model.companyPhone ? <Text>{model.companyPhone}</Text> : null}
-            <Text>{bullet('Job No', model.jobNumber)}</Text>
-            <Text>{bullet('Subcontract No', model.subcontractNumber)}</Text>
-            <Text>{bullet('Vendor No', model.vendorNumber)}</Text>
-            <Text>{bullet('Invoice No', model.vendorInvoiceNumber)}</Text>
+            <Text>{metaLine('Job No', model.jobNumber, true)}</Text>
+            <Text>{metaLine('Subcontract No', model.subcontractNumber, true)}</Text>
+            <Text>{metaLine('Vendor No', model.vendorNumber, true)}</Text>
+            <Text>{metaLine('Invoice No', model.vendorInvoiceNumber, false)}</Text>
           </View>
           {model.logoSrc ? <Image src={model.logoSrc} style={styles.logo} /> : <View />}
         </View>
         <View style={styles.projectRow}>
           <Text style={styles.project}>Project: {model.projectName}</Text>
-          <View style={styles.dates}>
-            <View style={styles.dateLine}>
+          <View style={styles.dateColumns}>
+            <View style={styles.dateCol}>
               <Text style={styles.dateLabel}>Date</Text>
               <Text style={styles.dateValue}>{formatDisplayDate(model.issuedOn)}</Text>
             </View>
-            <View style={styles.dateLine}>
+            <View style={styles.dateCol}>
               <Text style={styles.dateLabel}>Due Date</Text>
               <Text style={styles.dateValue}>{formatDisplayDate(model.dueOn)}</Text>
             </View>
@@ -249,14 +262,14 @@ export const WorkOrderPdf = ({ model }: { model: WorkOrderPdfModel }) => {
             {billPlace ? <Text style={styles.billText}>{billPlace}</Text> : null}
           </View>
           <View>
-            <Text style={styles.docKind}>{credit ? 'CREDIT MEMO' : 'WORK ORDER'}</Text>
+            <Text style={styles.docKind}>{credit ? 'Credit Memo' : 'Invoice'}</Text>
             <Text style={styles.docNumber}>{model.numberText}</Text>
             {credit && model.originalVendorInvoiceNumber ? (
               <Text style={styles.ref}>Vendor invoice {model.originalVendorInvoiceNumber}</Text>
             ) : null}
           </View>
         </View>
-        <View style={styles.tableHeader} fixed>
+        <View style={styles.tableHeader}>
           <Text style={[styles.th, styles.colNo]}>#</Text>
           <Text style={[styles.th, styles.colItem]}>Item</Text>
           <Text style={[styles.th, styles.colQty]}>Qty</Text>
@@ -277,11 +290,7 @@ export const WorkOrderPdf = ({ model }: { model: WorkOrderPdfModel }) => {
           </View>
         ))}
         <View style={styles.totals}>{rows}</View>
-        <Text
-          style={styles.pageNo}
-          fixed
-          render={({ pageNumber, totalPages }) => `Page ${pageNumber} / ${totalPages}`}
-        />
+        <Text style={styles.pageNo} fixed render={({ pageNumber, totalPages }) => `Page ${pageNumber}/${totalPages}`} />
       </Page>
     </Document>
   );

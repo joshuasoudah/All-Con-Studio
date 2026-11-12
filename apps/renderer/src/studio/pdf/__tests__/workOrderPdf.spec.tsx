@@ -127,14 +127,20 @@ const textOf = (bytes: Buffer) => {
 };
 
 describe('work order PDF', () => {
-  it('extracts the WO8.17 text, Figtree, and page 1 / 1', async () => {
+  it('extracts the WO8.17 text, Figtree, and page 1/1', async () => {
     const bytes = await renderPdf(wo817());
     writeFileSync('/tmp/wo817-sanitized.pdf', bytes);
     const loaded = await PDFDocument.load(bytes);
     expect(loaded.getPageCount()).toBe(1);
     const { text, fonts } = textOf(bytes);
     expect(fonts).toMatch(/Figtree/);
-    expect(text).toContain('WORK ORDER');
+    expect(text).toContain('Invoice');
+    expect(text).not.toContain('WORK ORDER');
+    expect(text).toContain('Oct 15, 2026');
+    expect(text).toContain('Nov 14, 2026');
+    expect(text).toContain('Vendor No: ALLCO5 •');
+    expect(text).toContain('Invoice No: 2966923');
+    expect(text).not.toMatch(/Invoice No: 2966923 •/);
     expect(text).toContain('WO8.17');
     expect(text).toContain('Jaguars Stadium of the Future');
     expect(text).toContain('Hunt Construction-Barton Malow');
@@ -147,7 +153,7 @@ describe('work order PDF', () => {
     expect(text).toContain('$2,889.73');
     expect(text).toContain('$216.73');
     expect(text).toContain('$3,106.46');
-    expect(text).toContain('Page 1 / 1');
+    expect(text).toContain('Page 1/1');
     expect(text).not.toContain('Amount Paid');
     expect(text).not.toContain('Balance Due');
     expect(text).not.toContain('ATTACHMENT-SENTINEL-XYZ');
@@ -188,7 +194,7 @@ describe('work order PDF', () => {
     );
     writeFileSync('/tmp/cm-1001.pdf', bytes);
     const text = textOf(bytes).text;
-    expect(text).toContain('CREDIT MEMO');
+    expect(text).toContain('Credit Memo');
     expect(text).toContain('CM-1001');
     expect(text).toContain('Credit Total');
     expect(text).toContain('Vendor invoice 2966923');
@@ -216,7 +222,7 @@ describe('work order PDF', () => {
     expect(loaded.getPageCount()).toBeGreaterThan(1);
     const text = textOf(bytes).text;
     for (const line of lines) expect(text).toContain(line.title);
-    expect(text).toContain('Page 1 /');
+    expect(text).toContain('Page 1/');
   });
 
   it('renders empty parties, a pre-tax adjustment, and a logo without a mime type', async () => {
