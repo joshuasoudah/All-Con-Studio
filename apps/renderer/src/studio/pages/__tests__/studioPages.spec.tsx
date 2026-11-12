@@ -119,7 +119,8 @@ const credit: StudioDocument = {
   id: 'cm-1001',
   documentType: 'credit_memo',
   numberText: 'CM-1001',
-  totalCents: 20312
+  totalCents: 20312,
+  balanceCents: 20312
 };
 
 const company = {
@@ -177,6 +178,7 @@ describe('studio pages', () => {
       </MemoryRouter>
     );
     expect(await screen.findByText('WO8.17 · Jaguars Stadium of the Future')).toBeInTheDocument();
+    expect(screen.getByText('$2,903.34')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'New Work Order' }));
     expect(screen.getByTestId('location')).toHaveTextContent('/work-orders/new');
     fireEvent.click(screen.getByRole('button', { name: /CM-1001/ }));

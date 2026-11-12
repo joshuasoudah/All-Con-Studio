@@ -40,6 +40,8 @@ Restore asks you to confirm first. Before it replaces the current file, it write
 4. Enter the vendor invoice number and the lines. Check the total. A manual total is a post-tax adjustment unless Settings says pre-tax. The adjustment is its own row and the line items stay as entered.
 5. Choose **Download PDF**. The save dialog suggests `{number} - {project}.pdf`. Change that pattern in Settings.
 
+The PDF is US Letter in Figtree. A work order is headed **Invoice** and numbered `WO<group>.<sequence>`, matching the layout used for project billing. Turn on **Amount paid on new documents** in Settings when the PDF should include Amount Paid and Balance Due. A credit memo is headed **Credit Memo** and the total is labeled **Credit Total**.
+
 Credit memos use their own sequence, starting at `CM-1001`. The prefix, start, and padding are in Settings. A credit memo does not change the work order it refers to. The PDF labels the amount **Credit Total**.
 
 Finalize locks the document. Later edits to the project or vendor do not change a finalized PDF. Duplicate makes a new draft with the next number.

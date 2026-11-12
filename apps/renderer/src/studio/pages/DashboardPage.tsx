@@ -21,7 +21,10 @@ export const DashboardPage: FC = () => {
   }, []);
 
   const drafts = recent.filter(document => document.status === 'draft').length;
-  const openBalance = recent.reduce((sum, document) => sum + document.balanceCents, 0);
+  const openBalance = recent.reduce((sum, document) => {
+    const balance = document.balanceCents;
+    return sum + (document.documentType === 'credit_memo' ? -balance : balance);
+  }, 0);
 
   return (
     <Box>
