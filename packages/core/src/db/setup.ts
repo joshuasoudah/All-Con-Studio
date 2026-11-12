@@ -93,19 +93,8 @@ export const openSqlLite = async (data: {
   const folder = path.dirname(fullPath);
   fs.mkdirSync(folder, { recursive: true });
 
-  if (createIfMissing) {
-    try {
-      if (fs.existsSync(fullPath)) {
-        fs.unlinkSync(fullPath);
-      }
-    } catch (err) {
-      if (err instanceof Error) {
-        throw new Error(err.message);
-      } else {
-        throw new Error(String(err));
-      }
-    }
-  } else {
+  // Creating a database must not delete a file that is already there.
+  if (!createIfMissing) {
     if (!fs.existsSync(fullPath)) {
       throw new Error('error.databaseFileNotExist');
     }

@@ -56,6 +56,7 @@ export const IpcChannel = {
   printReceipt: 'print-receipt',
   restartApp: 'restart-app',
   showOpenDbDialog: 'show-open-db-dialog',
+  studio: 'studio',
   showSaveDbDialog: 'show-save-db-dialog',
   testConnection: 'test-connection',
   updateAvailable: 'update-available',

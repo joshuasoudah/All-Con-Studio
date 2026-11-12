@@ -19,6 +19,7 @@ import type { Response } from '../types/response';
 import type { Settings, SettingsUpdate } from '../types/settings';
 import type { StyleProfile, StyleProfileAdd, StyleProfileUpdate } from '../types/styleProfiles';
 import type { Unit, UnitAdd, UnitUpdate } from '../types/unit';
+import type { StudioRequest } from '../studio';
 import type { ProgressInfo } from '../types/updater';
 
 /** API exposed by the preload script as `window.electronAPI`. */
@@ -126,4 +127,6 @@ export interface ElectronAPI {
   importAllData: () => Promise<Response<unknown>>;
 
   printReceipt: (html: string) => Promise<Response<unknown>>;
+
+  studio: (request: StudioRequest) => Promise<Response<unknown>>;
 }

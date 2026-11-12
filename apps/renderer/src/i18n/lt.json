@@ -1,7 +1,7 @@
 {
   "app": {
     "noItems": "Pasirinkite elementą, kad peržiūrėtumėte informaciją",
-    "title": "Sąskaitų Kūrėjas",
+    "title": "All Con Studio",
     "version": "Version"
   },
   "ariaLabel": {
@@ -623,17 +623,22 @@
     "businesses": "Įmonės",
     "categories": "Kategorijos",
     "clients": "Klientai",
+    "creditMemos": "Kreditinės pažymos",
     "currencies": "Valiutos",
+    "dashboard": "Suvestinė",
     "invoices": "Sąskaitos",
     "items": "Prekės",
     "layouts": "Maketuotės",
     "logout": "Atsijungti",
     "presets": "Šablonai",
+    "projects": "Projektai",
     "quotes": "Pasiūlymai",
     "reports": "Ataskaitos",
     "settings": "Nustatymai",
     "styleProfiles": "Stiliaus profiliai",
-    "units": "Vienetai"
+    "units": "Vienetai",
+    "vendors": "Tiekėjai",
+    "workOrders": "Darbo užsakymai"
   },
   "presets": {
     "add": "Pridėti šabloną",

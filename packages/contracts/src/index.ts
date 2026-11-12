@@ -41,3 +41,4 @@ export * from './types/sortOrder';
 export * from './types/styleProfiles';
 export * from './types/unit';
 export * from './types/updater';
+export * from './studio';

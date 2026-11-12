@@ -9,133 +9,101 @@ declare module '@mui/material/styles' {
   }
 }
 
-const commonSettings: ThemeOptions = {
-  typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h1: { fontWeight: 700, fontSize: '2rem' },
-    h2: { fontWeight: 600, fontSize: '1.75rem' },
-    button: { textTransform: 'none', fontWeight: 600 }
-  },
-  shape: { borderRadius: 12 },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12
-        }
-      }
+const fontFamily = '"Figtree", "Segoe UI", sans-serif';
+
+const buildTheme = (mode: 'light' | 'dark') => {
+  const dark = mode === 'dark';
+  const ink = dark ? '#f6f1ea' : '#1c1917';
+  const muted = dark ? '#b7afa4' : '#6b645c';
+  const paper = dark ? '#221f1c' : '#fffcf8';
+  const canvas = dark ? '#141210' : '#f3efe8';
+  const line = dark ? '#3a342e' : '#e4ddd2';
+  const thumb = dark ? '#6a534c' : '#c4b8ac';
+
+  const options: ThemeOptions = {
+    palette: {
+      mode,
+      primary: { main: '#8e2a2a', contrastText: '#fffaf7' },
+      secondary: { main: dark ? '#d7c4b8' : '#3f4a45' },
+      success: { main: dark ? '#8fbfa4' : '#2f6b4f' },
+      warning: { main: dark ? '#e2c08a' : '#9a6b2f' },
+      error: { main: dark ? '#f0a8a0' : '#9f2d2d' },
+      divider: line,
+      background: { default: canvas, paper },
+      text: { primary: ink, secondary: muted },
+      customBorder: line
     },
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12
-        }
-      }
+    typography: {
+      fontFamily,
+      h1: { fontWeight: 600, fontSize: '2rem', letterSpacing: '-0.03em' },
+      h2: { fontWeight: 600, fontSize: '1.75rem', letterSpacing: '-0.03em' },
+      h3: { fontWeight: 600, letterSpacing: '-0.02em' },
+      h4: { fontWeight: 600, fontSize: '1.75rem', letterSpacing: '-0.03em' },
+      h5: { fontWeight: 600, letterSpacing: '-0.02em' },
+      h6: { fontWeight: 600 },
+      button: { textTransform: 'none', fontWeight: 600, letterSpacing: '0.01em' },
+      body1: { fontSize: '0.95rem' },
+      body2: { fontSize: '0.875rem' }
     },
-    MuiCssBaseline: {
-      styleOverrides: {
-        body: {
-          '&::-webkit-scrollbar': {
-            width: '10px',
-            height: '10px'
-          },
-          '&::-webkit-scrollbar-track': {
-            borderRadius: '5px'
-          },
-          '&::-webkit-scrollbar-thumb': {
-            borderRadius: '5px'
-          },
-          scrollbarWidth: 'thin'
+    shape: { borderRadius: 10 },
+    components: {
+      MuiCssBaseline: {
+        styleOverrides: {
+          body: {
+            fontFamily,
+            backgroundColor: canvas,
+            scrollbarWidth: 'thin',
+            scrollbarColor: `${thumb} ${canvas}`
+          }
         }
+      },
+      MuiButton: {
+        styleOverrides: {
+          root: { borderRadius: 8, paddingInline: 14, boxShadow: 'none' },
+          contained: { boxShadow: 'none' },
+          containedPrimary: { '&:hover': { boxShadow: 'none' } }
+        }
+      },
+      MuiPaper: {
+        defaultProps: { elevation: 0 },
+        styleOverrides: {
+          root: {
+            backgroundImage: 'none',
+            border: `1px solid ${line}`
+          }
+        }
+      },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: { backgroundColor: dark ? '#1a1715' : '#fff' }
+        }
+      },
+      MuiListItemButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: 8,
+            marginInline: 8,
+            marginBlock: 2,
+            '&.Mui-selected': {
+              backgroundColor: dark ? 'rgba(224, 137, 124, 0.16)' : 'rgba(142, 42, 42, 0.1)',
+              color: dark ? '#f3d2cb' : '#8e2a2a',
+              '& .MuiListItemIcon-root': { color: dark ? '#f3d2cb' : '#8e2a2a' },
+              '&:hover': { backgroundColor: dark ? 'rgba(224, 137, 124, 0.22)' : 'rgba(142, 42, 42, 0.16)' }
+            }
+          }
+        }
+      },
+      MuiListItemIcon: {
+        styleOverrides: { root: { minWidth: 38, color: muted } }
+      },
+      MuiChip: {
+        styleOverrides: { root: { fontWeight: 600 } }
       }
     }
-  }
+  };
+
+  return createTheme(options);
 };
 
-export const lightTheme = createTheme({
-  ...commonSettings,
-  components: {
-    MuiCssBaseline: {
-      styleOverrides: {
-        body: {
-          '&::-webkit-scrollbar-track': {
-            background: '#e5e5e5'
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: '#1976d2',
-            border: '2px solid #e5e5e5'
-          },
-          scrollbarColor: '#1976d2 #e5e5e5'
-        },
-        '*': {
-          '&::-webkit-scrollbar-track': {
-            background: '#e5e5e5'
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: '#1976d2',
-            border: '2px solid #e5e5e5'
-          },
-          scrollbarColor: '#1976d2 #e5e5e5'
-        }
-      }
-    }
-  },
-  palette: {
-    mode: 'light',
-    primary: { main: '#1976d2' },
-    secondary: { main: '#9c27b0' },
-    background: {
-      default: '#f5f6fa',
-      paper: '#ffffff'
-    },
-    text: {
-      primary: '#1e1e1e',
-      secondary: '#555'
-    },
-    customBorder: '#e0e0e0'
-  }
-});
-
-export const darkTheme = createTheme({
-  ...commonSettings,
-  components: {
-    MuiCssBaseline: {
-      styleOverrides: {
-        body: {
-          '&::-webkit-scrollbar-track': {
-            background: '#2c2c2c'
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: '#1976d2',
-            border: '2px solid #2c2c2c'
-          },
-          scrollbarColor: '#1976d2 #2c2c2c'
-        },
-        '*': {
-          '&::-webkit-scrollbar-track': {
-            background: '#2c2c2c'
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: '#1976d2',
-            border: '2px solid #2c2c2c'
-          },
-          scrollbarColor: '#1976d2 #2c2c2c'
-        }
-      }
-    }
-  },
-  palette: {
-    mode: 'dark',
-    primary: { main: '#90caf9' },
-    secondary: { main: '#ce93d8' },
-    background: {
-      default: '#121212',
-      paper: '#1e1e1e'
-    },
-    text: {
-      primary: '#ffffff',
-      secondary: '#b0b0b0'
-    },
-    customBorder: '#333'
-  }
-});
+export const lightTheme = buildTheme('light');
+export const darkTheme = buildTheme('dark');

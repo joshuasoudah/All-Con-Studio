@@ -14,6 +14,7 @@ import { initPresetHandlers } from './presets';
 import { initReceiptHandlers } from './receipt';
 import { initSettingsHandlers } from './settings';
 import { initStyleProfilesHandlers } from './styleProfiles';
+import { initStudioHandlers } from './studio';
 import { initUnitsHandlers } from './units';
 
 export const initIpcHandler = (mainWindow: BrowserWindow) => {
@@ -36,4 +37,5 @@ export const initIpcHandler = (mainWindow: BrowserWindow) => {
   initBanksHandlers();
   initPresetHandlers();
   initReceiptHandlers();
+  initStudioHandlers();
 };

@@ -26,6 +26,7 @@ import type {
   SettingsUpdate,
   StyleProfileAdd,
   StyleProfileUpdate,
+  StudioRequest,
   UnitAdd,
   UnitUpdate
 } from '@invoice-builder/contracts';
@@ -149,5 +150,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportAllData: () => ipcRenderer.invoke(IpcChannel.exportAllData),
   importAllData: () => ipcRenderer.invoke(IpcChannel.importAllData),
 
-  printReceipt: (html: string) => ipcRenderer.invoke(IpcChannel.printReceipt, html)
+  printReceipt: (html: string) => ipcRenderer.invoke(IpcChannel.printReceipt, html),
+
+  studio: (request: StudioRequest) => ipcRenderer.invoke(IpcChannel.studio, request)
 } satisfies ElectronAPI);

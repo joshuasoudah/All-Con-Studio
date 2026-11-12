@@ -1,13 +1,15 @@
-appId: com.invoice-builder
-productName: Invoice Builder
+appId: com.allcon.studio
+productName: All Con Studio
+executableName: AllConStudio
 
 directories:
   output: release
 
+# Default database (not created by the installer): %APPDATA%\All Con Studio\all-con-studio.db
 publish:
   provider: github
-  owner: piratuks
-  repo: invoice-builder
+  owner: joshuasoudah
+  repo: All-Con-Studio
 
 files:
   - dist-renderer/**
@@ -32,15 +34,25 @@ toolsets:
   appimage: 1.0.3
 
 win:
+  icon: apps/desktop/main/assets/icon.ico
   target:
-    - nsis
+    - target: nsis
+      arch:
+        - x64
 
 nsis:
-  artifactName: Invoice-Builder-Setup-${version}.${ext}
-  oneClick: true
+  artifactName: All-Con-Studio-Setup-${version}.${ext}
+  shortcutName: All Con Studio
+  uninstallDisplayName: All Con Studio
+  oneClick: false
   perMachine: false
-  allowElevation: false
-  allowToChangeInstallationDirectory: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  menuCategory: All Con Studio
+  installerIcon: apps/desktop/main/assets/icon.ico
+  uninstallerIcon: apps/desktop/main/assets/icon.ico
 
 linux:
   target:

@@ -1,0 +1,395 @@
+// @vitest-environment node
+import { pdf } from '@react-pdf/renderer';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { PDFDocument } from 'pdf-lib';
+import { describe, expect, it, vi } from 'vitest';
+import { formatUsd, pdfFileName } from '@invoice-builder/contracts';
+import { toPdfModel, WorkOrderPdf, type WorkOrderPdfModel } from '../WorkOrderPdf';
+import type { StudioDocument } from '@invoice-builder/contracts';
+
+const fontFiles = vi.hoisted(() => {
+  // vi.hoisted runs before ESM imports, so the path helper is loaded here.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { resolve: resolvePath } = require('node:path') as typeof import('node:path');
+  return {
+    regular: resolvePath(process.cwd(), 'apps/renderer/src/assets/figtree/Figtree-Regular.ttf'),
+    semibold: resolvePath(process.cwd(), 'apps/renderer/src/assets/figtree/Figtree-SemiBold.ttf')
+  };
+});
+
+vi.mock('@react-pdf/renderer', async () => {
+  const actual = await vi.importActual<typeof import('@react-pdf/renderer')>('@react-pdf/renderer');
+  return {
+    ...actual,
+    Font: {
+      ...actual.Font,
+      register: vi.fn((config: { family?: string; fonts?: { fontWeight?: number; src: string }[]; src?: string }) => {
+        if (config.fonts) {
+          return actual.Font.register({
+            family: config.family ?? 'Figtree',
+            fonts: config.fonts.map(font => ({
+              ...font,
+              src: font.fontWeight === 600 ? fontFiles.semibold : fontFiles.regular
+            }))
+          });
+        }
+        return actual.Font.register({ ...config, family: config.family ?? 'Figtree', src: fontFiles.regular });
+      }),
+      registerHyphenationCallback: (callback: (word: string) => string[]) =>
+        actual.Font.registerHyphenationCallback(callback)
+    }
+  };
+});
+
+const logo = readFileSync(resolve(process.cwd(), 'apps/renderer/src/assets/allcon/default-logo.png')).toString(
+  'base64'
+);
+
+const wo817 = (overrides: Partial<WorkOrderPdfModel> = {}): WorkOrderPdfModel => ({
+  documentType: 'work_order',
+  numberText: 'WO8.17',
+  projectName: 'Jaguars Stadium of the Future',
+  issuedOn: '2026-10-15',
+  dueOn: '2026-11-14',
+  jobNumber: 'Default',
+  subcontractNumber: 'WO8',
+  vendorNumber: 'ALLCO5',
+  vendorInvoiceNumber: '2966923',
+  originalVendorInvoiceNumber: '',
+  companyAddressLine1: '123 Example St',
+  companyAddressLine2: '',
+  companyCity: 'Jacksonville',
+  companyRegion: 'FL',
+  companyPostalCode: '32202',
+  companyPhone: '(904) 555-0100',
+  logoSrc: `data:image/png;base64,${logo}`,
+  billToName: 'Hunt Construction-Barton Malow',
+  billToAddressLine1: '123 Example St',
+  billToAddressLine2: '',
+  billToCity: 'Jacksonville',
+  billToRegion: 'FL',
+  billToPostalCode: '32202',
+  taxName: 'Default',
+  taxRateBps: 750,
+  overrideBasis: 'post-tax',
+  lines: [
+    {
+      title: '2nd Restroom Rent',
+      description: 'Restroom, 12x30 DBPR Rent (Item1129)(BG) (Bldg ID # 33135/ E-Code 526842)',
+      serviceText: 'Service Date Range: 9/23/2026-10/22/2026(Monthly)',
+      quantity: '1',
+      unitCostCents: 269790,
+      lineTotalCents: 269790
+    },
+    {
+      title: '2nd Restroom',
+      description: 'Security Door Bars Office, 24x56 DBPR (Item1376W) (Bldg ID # 89263/ E-Code 737086, 737087)',
+      serviceText: 'Service Date Range: 9/23/2026-10/22/2026(Monthly)',
+      quantity: '1',
+      unitCostCents: 288,
+      lineTotalCents: 288
+    },
+    {
+      title: 'Personal Property Expense',
+      description: '',
+      serviceText: 'Service Date Range: 9/23/2026-10/22/2026(Monthly)',
+      quantity: '1',
+      unitCostCents: 18895,
+      lineTotalCents: 18895
+    }
+  ],
+  subtotalCents: 288973,
+  taxCents: 21673,
+  adjustmentCents: 0,
+  totalCents: 310646,
+  showAmountPaid: false,
+  amountPaidCents: 0,
+  ...overrides
+});
+
+const renderPdf = async (model: WorkOrderPdfModel) => {
+  const blob = await pdf(<WorkOrderPdf model={model} />).toBlob();
+  return Buffer.from(await blob.arrayBuffer());
+};
+
+const textOf = (bytes: Buffer) => {
+  const dir = mkdtempSync(join(tmpdir(), 'allcon-pdf-'));
+  const filePath = join(dir, 'doc.pdf');
+  writeFileSync(filePath, bytes);
+  return {
+    filePath,
+    text: execFileSync('pdftotext', ['-layout', filePath, '-'], { encoding: 'utf8' }),
+    fonts: execFileSync('pdffonts', [filePath], { encoding: 'utf8' })
+  };
+};
+
+describe('work order PDF', () => {
+  it('extracts the WO8.17 text, Figtree, and page 1/1', async () => {
+    const bytes = await renderPdf(wo817());
+    writeFileSync('/tmp/wo817-sanitized.pdf', bytes);
+    const loaded = await PDFDocument.load(bytes);
+    expect(loaded.getPageCount()).toBe(1);
+    const { text, fonts } = textOf(bytes);
+    expect(fonts).toMatch(/Figtree/);
+    expect(text).toContain('Invoice');
+    expect(text).not.toContain('WORK ORDER');
+    expect(text).toContain('Oct 15, 2026');
+    expect(text).toContain('Nov 14, 2026');
+    expect(text).toContain('Vendor No: ALLCO5 •');
+    expect(text).toContain('Invoice No: 2966923');
+    expect(text).not.toMatch(/Invoice No: 2966923 •/);
+    expect(text).toContain('WO8.17');
+    expect(text).toContain('Jaguars Stadium of the Future');
+    expect(text).toContain('Hunt Construction-Barton Malow');
+    expect(text).toContain('ALLCO5');
+    expect(text).toContain('2966923');
+    expect(text).toContain('2nd Restroom Rent');
+    expect(text).toContain('2nd Restroom');
+    expect(text).toContain('Personal Property Expense');
+    expect(text).toContain('123 Example St');
+    expect(text).toContain('$2,889.73');
+    expect(text).toContain('$216.73');
+    expect(text).toContain('$3,106.46');
+    expect(text).toContain('Page 1/1');
+    expect(text).not.toContain('Amount Paid');
+    expect(text).not.toContain('Balance Due');
+    expect(text).not.toContain('ATTACHMENT-SENTINEL-XYZ');
+    expect(pdfFileName('{number} - {project}.pdf', 'WO8.17', 'Jaguars Stadium of the Future')).toBe(
+      'WO8.17 - Jaguars Stadium of the Future.pdf'
+    );
+  });
+
+  it('shows a post-tax adjustment once and can opt in to amount paid', async () => {
+    const adjusted = textOf(
+      await renderPdf(
+        wo817({ manualTotalCents: 310000, adjustmentCents: -646, totalCents: 310000 } as Partial<WorkOrderPdfModel>)
+      )
+    ).text;
+    expect(adjusted).toContain('Adjustment');
+    expect(adjusted).toContain('-$6.46');
+    expect(adjusted).toContain('$3,100.00');
+    expect(adjusted.match(/-?\$6\.46/g)).toHaveLength(1);
+
+    const paid = textOf(await renderPdf(wo817({ showAmountPaid: true, amountPaidCents: 100000 }))).text;
+    expect(paid).toContain('Amount Paid');
+    expect(paid).toContain('$1,000.00');
+    expect(paid).toContain('Balance Due');
+    expect(paid).toContain('$2,106.46');
+  });
+
+  it('labels a credit memo without a second negative', async () => {
+    const bytes = await renderPdf(
+      wo817({
+        documentType: 'credit_memo',
+        numberText: 'CM-1001',
+        originalVendorInvoiceNumber: '2966923',
+        lines: [wo817().lines[2]],
+        subtotalCents: 18895,
+        taxCents: 1417,
+        totalCents: 20312
+      })
+    );
+    writeFileSync('/tmp/cm-1001.pdf', bytes);
+    const text = textOf(bytes).text;
+    expect(text).toContain('Credit Memo');
+    expect(text).toContain('CM-1001');
+    expect(text).toContain('Credit Total');
+    expect(text).toContain('Vendor invoice 2966923');
+    expect(text).not.toContain('-$203.12');
+  });
+
+  it('keeps every title on a multi-page letter document', async () => {
+    const lines = Array.from({ length: 40 }, (_, index) => ({
+      title: `Fixture line ${String(index + 1).padStart(2, '0')}`,
+      description: 'Longer description so the row takes vertical space on the letter page.',
+      serviceText: 'Service Date Range: 9/23/2026-10/22/2026(Monthly)',
+      quantity: '1',
+      unitCostCents: 1000,
+      lineTotalCents: 1000
+    }));
+    const bytes = await renderPdf(
+      wo817({
+        lines,
+        subtotalCents: 40000,
+        taxCents: 3000,
+        totalCents: 43000
+      })
+    );
+    const loaded = await PDFDocument.load(bytes);
+    expect(loaded.getPageCount()).toBeGreaterThan(1);
+    const text = textOf(bytes).text;
+    for (const line of lines) expect(text).toContain(line.title);
+    expect(text).toContain('Page 1/');
+  });
+
+  it('renders empty parties, a pre-tax adjustment, and a logo without a mime type', async () => {
+    const sparse = wo817({
+      companyAddressLine1: '',
+      companyAddressLine2: 'Suite 1',
+      companyCity: '',
+      companyRegion: '',
+      companyPostalCode: '',
+      companyPhone: '',
+      logoSrc: null,
+      billToAddressLine1: '',
+      billToAddressLine2: 'Floor 2',
+      billToCity: '',
+      billToRegion: '',
+      billToPostalCode: '',
+      jobNumber: '',
+      overrideBasis: 'pre-tax',
+      adjustmentCents: -601,
+      lines: [
+        {
+          title: 'Labor',
+          description: '',
+          serviceText: '',
+          quantity: '1',
+          unitCostCents: 1000,
+          lineTotalCents: 1000
+        }
+      ]
+    });
+    const text = textOf(await renderPdf(sparse)).text;
+    expect(text).toContain('Suite 1');
+    expect(text).toContain('Floor 2');
+    expect(text).toContain('Job No: —');
+    expect(text).toContain('Adjustment');
+    expect(text).toContain('-$6.01');
+
+    const withLogo = toPdfModel({
+      documentType: 'work_order',
+      numberText: 'WO8.17',
+      projectName: 'Jaguars Stadium of the Future',
+      issuedOn: '2026-10-15',
+      dueOn: null,
+      jobNumber: '',
+      subcontractNumber: '',
+      vendorNumber: '',
+      vendorInvoiceNumber: '',
+      originalVendorInvoiceNumber: '',
+      companyAddressLine1: '',
+      companyAddressLine2: '',
+      companyCity: '',
+      companyRegion: '',
+      companyPostalCode: '',
+      companyPhone: '',
+      logoBase64: 'QUJD',
+      logoMime: '',
+      billToName: '',
+      billToAddressLine1: '',
+      billToAddressLine2: '',
+      billToCity: '',
+      billToRegion: '',
+      billToPostalCode: '',
+      taxName: 'Default',
+      taxRateBps: 750,
+      overrideBasis: 'pre-tax',
+      lines: [],
+      subtotalCents: 0,
+      taxCents: 0,
+      adjustmentCents: 0,
+      totalCents: 0,
+      showAmountPaid: false,
+      amountPaidCents: 0
+    } as StudioDocument);
+    const samples = [
+      ['wo817', wo817({ showAmountPaid: true, amountPaidCents: 0 })],
+      [
+        'wo818',
+        wo817({
+          numberText: 'WO8.18',
+          issuedOn: '2026-10-20',
+          dueOn: '2026-11-19',
+          vendorInvoiceNumber: '2967104',
+          lines: [
+            {
+              title: 'Site labor',
+              description: 'Gate relocation',
+              serviceText: 'Service Date Range: 10/20/2026-11/19/2026',
+              quantity: '40',
+              unitCostCents: 8550,
+              lineTotalCents: 342000
+            }
+          ],
+          subtotalCents: 342000,
+          taxCents: 25650,
+          totalCents: 367650,
+          showAmountPaid: true,
+          amountPaidCents: 0
+        })
+      ],
+      [
+        'wo31',
+        wo817({
+          numberText: 'WO3.1',
+          projectName: 'Riverside Elementary Addition',
+          issuedOn: '2026-09-02',
+          dueOn: '2026-10-02',
+          jobNumber: 'RIV-14',
+          subcontractNumber: 'WO3',
+          vendorInvoiceNumber: '44102',
+          billToName: 'Example School Board',
+          billToAddressLine1: '400 Example Ave',
+          taxRateBps: 0,
+          lines: [
+            {
+              title: 'Temporary fencing',
+              description: 'Chain link, 6 ft, along the north laydown yard.',
+              serviceText: 'Service Date Range: 9/1/2026-9/30/2026(Monthly)',
+              quantity: '1',
+              unitCostCents: 185000,
+              lineTotalCents: 185000
+            }
+          ],
+          subtotalCents: 185000,
+          taxCents: 0,
+          totalCents: 185000,
+          showAmountPaid: true,
+          amountPaidCents: 0
+        })
+      ],
+      [
+        'cm1001',
+        wo817({
+          documentType: 'credit_memo',
+          numberText: 'CM-1001',
+          originalVendorInvoiceNumber: '2966923',
+          issuedOn: '2026-10-16',
+          dueOn: '2026-11-15',
+          lines: [wo817().lines[2]],
+          subtotalCents: 18895,
+          taxCents: 1417,
+          totalCents: 20312,
+          showAmountPaid: false
+        })
+      ]
+    ] as const;
+    const dir = '/tmp/allcon-samples';
+    mkdirSync(dir, { recursive: true });
+    for (const [name, model] of samples) {
+      const bytes = await renderPdf(model);
+      const loaded = await PDFDocument.load(bytes);
+      const page = loaded.getPage(0);
+      expect(page.getWidth()).toBe(612);
+      expect(page.getHeight()).toBe(792);
+      writeFileSync(`${dir}/${name}.pdf`, bytes);
+      const text = textOf(bytes).text;
+      expect(text).toContain(model.numberText);
+      expect(text).toContain(formatUsd(model.totalCents));
+    }
+    const stadium = textOf(await renderPdf(samples[0][1])).text;
+    expect(stadium).toContain('Amount Paid');
+    expect(stadium).toContain('Balance Due');
+    expect(stadium).toContain('$0.00');
+    expect(stadium).toContain('$3,106.46');
+
+    expect(withLogo.logoSrc).toBe('data:image/png;base64,QUJD');
+    expect(
+      toPdfModel({ ...withLogo, logoBase64: null, logoMime: null, lines: [] } as unknown as StudioDocument).logoSrc
+    ).toBe(null);
+  });
+});

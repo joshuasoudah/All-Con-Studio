@@ -53,9 +53,9 @@ vi.mock('../../shared/hooks/other/useBeforeLeave', () => ({
   })
 }));
 vi.mock('../AppLayout', () => ({ AppLayout: () => <div>app-layout</div> }));
-vi.mock('../DatabaseChooser/DatabaseChooser', () => ({
-  DatabaseChooser: ({ onDatabaseRead }: { onDatabaseRead: () => void }) => {
-    mocks.databaseRead = onDatabaseRead;
+vi.mock('../StudioGate', () => ({
+  StudioGate: ({ onReady }: { onReady: () => void }) => {
+    mocks.databaseRead = onReady;
     return <div>database-chooser</div>;
   }
 }));

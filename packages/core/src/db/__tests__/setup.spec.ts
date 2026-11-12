@@ -307,13 +307,17 @@ describe('openSqlLite', () => {
     );
   });
 
-  it('creates a new database file, replacing any existing file', async () => {
+  it('creates a missing database without deleting an existing file', async () => {
     const dbPath = path.join(tempDir, 'nested', 'db.sqlite');
-    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-    fs.writeFileSync(dbPath, 'old-content');
+    const { db: initial } = await openSqlLite({ fullPath: dbPath, createIfMissing: true });
+    await initial.run('CREATE TABLE keep_me (id INTEGER)');
+    await initial.run('INSERT INTO keep_me (id) VALUES (7)');
+    await initial.close();
 
     const { db } = await openSqlLite({ fullPath: dbPath, createIfMissing: true });
     expect(db.type).toBe('SQLite');
+    const row = await db.get<{ id: number }>('SELECT id FROM keep_me');
+    expect(row?.id).toBe(7);
     await db.close();
   });
 

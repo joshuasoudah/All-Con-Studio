@@ -63,4 +63,13 @@ const cleanupDatabase = async (windowId: number) => {
   await database.close();
 };
 
-export { cleanupDatabase, databases, requireDatabase, setupDB };
+const attachDatabase = async (windowId: number, database: DatabaseAdapter) => {
+  const current = databases.get(windowId);
+  if (current && current !== database) {
+    databases.delete(windowId);
+    await current.close();
+  }
+  databases.set(windowId, database);
+};
+
+export { attachDatabase, cleanupDatabase, databases, requireDatabase, setupDB };
